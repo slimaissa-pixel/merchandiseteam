@@ -13,11 +13,12 @@ from app.models.schedule import ScheduleRule
 from app.models.leave_request import LeaveRequest
 from app.schemas.gms import (
     GMSCreate, GMSResponse, GMSBase,
-    GMSWithDistance, GMSAssignmentCreate, GMSAssignmentResponse, GMSAssignmentRecurringCreate
+    GMSWithDistance, GMSAssignmentCreate, GMSAssignmentResponse, GMSAssignmentRecurringCreate, GMSAssignmentUpdate
 )
 from app.api.dependencies.deps import get_db, get_current_user
 from geoalchemy2.elements import WKTElement
 from datetime import timedelta, date
+from pydantic import BaseModel
 
 router = APIRouter()
 
@@ -383,3 +384,102 @@ def delete_gms(
     db.delete(db_gms)
     db.commit()
     return {"ok": True}
+
+# --- Advanced Schedule Management ---
+
+@router.delete("/assignments/{assignment_id}")
+def delete_assignment(
+    assignment_id: int,
+    mode: str = Query("single", description="single, future, or all"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    if current_user.role not in ['admin', 'supervisor']:
+        raise HTTPException(status_code=403, detail="Not allowed")
+    
+    assignment = db.query(GMSAssignment).filter(GMSAssignment.id == assignment_id).first()
+    if not assignment:
+        raise HTTPException(status_code=404, detail="Assignment not found")
+        
+    if mode == "single":
+        db.delete(assignment)
+    elif mode == "future" and assignment.rule_id:
+        db.query(GMSAssignment).filter(
+            GMSAssignment.rule_id == assignment.rule_id,
+            GMSAssignment.scheduled_date >= assignment.scheduled_date
+        ).delete()
+    elif mode == "all" and assignment.rule_id:
+        db.query(GMSAssignment).filter(GMSAssignment.rule_id == assignment.rule_id).delete()
+        db.query(ScheduleRule).filter(ScheduleRule.id == assignment.rule_id).delete()
+    else:
+        db.delete(assignment)
+        
+    db.commit()
+    return {"ok": True}
+
+@router.put("/assignments/{assignment_id}", response_model=GMSAssignmentResponse)
+def update_assignment(
+    assignment_id: int,
+    payload: GMSAssignmentUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    if current_user.role not in ['admin', 'supervisor']:
+        raise HTTPException(status_code=403, detail="Not allowed")
+        
+    assign = db.query(GMSAssignment).filter(GMSAssignment.id == assignment_id).first()
+    if not assign:
+        raise HTTPException(status_code=404, detail="Not found")
+        
+    if payload.user_id: assign.user_id = payload.user_id
+    if payload.gms_id: assign.gms_id = payload.gms_id
+    if payload.scheduled_date: assign.scheduled_date = payload.scheduled_date
+    if payload.notes is not None: assign.notes = payload.notes
+    
+    db.commit()
+    db.refresh(assign)
+    return assign
+
+@router.patch("/assignments/{assignment_id}/pause")
+def pause_assignment(assignment_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    if current_user.role not in ['admin', 'supervisor']: raise HTTPException(status_code=403, detail="Not allowed")
+    assign = db.query(GMSAssignment).filter(GMSAssignment.id == assignment_id).first()
+    if not assign or not assign.rule_id:
+        raise HTTPException(status_code=404, detail="Recurring schedule not found")
+    rule = db.query(ScheduleRule).filter(ScheduleRule.id == assign.rule_id).first()
+    if rule:
+        rule.status = "paused"
+        db.query(GMSAssignment).filter(
+            GMSAssignment.rule_id == assign.rule_id, 
+            GMSAssignment.scheduled_date >= func.current_date()
+        ).update({"status": "cancelled"})
+        db.commit()
+    return {"ok": True}
+
+@router.patch("/assignments/{assignment_id}/resume")
+def resume_assignment(assignment_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    if current_user.role not in ['admin', 'supervisor']: raise HTTPException(status_code=403, detail="Not allowed")
+    assign = db.query(GMSAssignment).filter(GMSAssignment.id == assignment_id).first()
+    if not assign or not assign.rule_id:
+        raise HTTPException(status_code=404, detail="Recurring schedule not found")
+    rule = db.query(ScheduleRule).filter(ScheduleRule.id == assign.rule_id).first()
+    if rule:
+        rule.status = "active"
+        db.query(GMSAssignment).filter(
+            GMSAssignment.rule_id == assign.rule_id, 
+            GMSAssignment.status == "cancelled",
+            GMSAssignment.scheduled_date >= func.current_date()
+        ).update({"status": "scheduled"})
+        db.commit()
+    return {"ok": True}
+
+class BulkDeletePayload(BaseModel):
+    ids: List[int]
+
+@router.post("/assignments/bulk-delete")
+def delete_bulk_assignments(payload: BulkDeletePayload, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    if current_user.role not in ['admin', 'supervisor']:
+        raise HTTPException(status_code=403, detail="Not allowed")
+    db.query(GMSAssignment).filter(GMSAssignment.id.in_(payload.ids)).delete(synchronize_session=False)
+    db.commit()
+    return {"ok": True}

@@ -25,6 +25,7 @@ export interface Assignment {
     check_in?: string;
     check_out?: string;
     duration_minutes?: number;
+    rule_id?: number;
 }
 
 export const GMSService = {
@@ -81,6 +82,56 @@ export const GMSService = {
         } catch (error) {
             console.error('[GMS] GetAllAssignments error:', error);
             return [];
+        }
+    },
+
+    deleteAssignment: async (id: number, mode: 'single' | 'future' | 'all' = 'single'): Promise<boolean> => {
+        try {
+            const response = await apiClient.delete(`/api/gms/assignments/${id}?mode=${mode}`);
+            return response.status === 200 || response.status === 204;
+        } catch (error) {
+            console.error('[GMS] Delete Assignment error:', error);
+            return false;
+        }
+    },
+
+    updateAssignment: async (id: number, data: Partial<Assignment>): Promise<boolean> => {
+        try {
+            const response = await apiClient.put(`/api/gms/assignments/${id}`, data);
+            return response.status === 200;
+        } catch (error) {
+            console.error('[GMS] Update Assignment error:', error);
+            return false;
+        }
+    },
+
+    pauseAssignment: async (id: number): Promise<boolean> => {
+        try {
+            const response = await apiClient.patch(`/api/gms/assignments/${id}/pause`);
+            return response.status === 200;
+        } catch (error) {
+            console.error('[GMS] Pause Assignment error:', error);
+            return false;
+        }
+    },
+
+    resumeAssignment: async (id: number): Promise<boolean> => {
+        try {
+            const response = await apiClient.patch(`/api/gms/assignments/${id}/resume`);
+            return response.status === 200;
+        } catch (error) {
+            console.error('[GMS] Resume Assignment error:', error);
+            return false;
+        }
+    },
+
+    bulkDeleteAssignments: async (ids: number[]): Promise<boolean> => {
+        try {
+            const response = await apiClient.post('/api/gms/assignments/bulk-delete', { ids });
+            return response.status === 200;
+        } catch (error) {
+            console.error('[GMS] Bulk Delete Assignments error:', error);
+            return false;
         }
     },
 

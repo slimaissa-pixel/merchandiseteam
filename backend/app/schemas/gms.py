@@ -47,6 +47,14 @@ class GMSAssignmentCreate(BaseModel):
     scheduled_date: Optional[datetime] = None
     status: Optional[str] = "scheduled"
     notes: Optional[str] = None
+    rule_id: Optional[int] = None
+
+class GMSAssignmentUpdate(BaseModel):
+    user_id: Optional[int] = None
+    gms_id: Optional[int] = None
+    scheduled_date: Optional[datetime] = None
+    notes: Optional[str] = None
+
 
 class GMSAssignmentResponse(GMSAssignmentCreate):
     id: int

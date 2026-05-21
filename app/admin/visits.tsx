@@ -34,8 +34,24 @@ export default function AdminVisitsPage() {
     const [merchandisers, setMerchandisers] = useState<User[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
+    const [statusFilter, setStatusFilter] = useState('all');
     
-    // Modal State
+    // Selection & Bulk
+    const [selectedIds, setSelectedIds] = useState<number[]>([]);
+
+    // Dropdown
+    const [openMenuId, setOpenMenuId] = useState<number | null>(null);
+
+    // Modals
+    const [deleteConfirmVisible, setDeleteConfirmVisible] = useState(false);
+    const [itemToDelete, setItemToDelete] = useState<Assignment | null>(null);
+    const [deleteMode, setDeleteMode] = useState<'single' | 'future' | 'all'>('single');
+    
+    const [detailsModalVisible, setDetailsModalVisible] = useState(false);
+    const [selectedItem, setSelectedItem] = useState<Assignment | null>(null);
+    const [toast, setToast] = useState<{message: string, type: 'success' | 'error'} | null>(null);
+    
+    // Create Modal State
     const [modalVisible, setModalVisible] = useState(false);
     const [saving, setSaving] = useState(false);
     const [form, setForm] = useState({
@@ -47,6 +63,20 @@ export default function AdminVisitsPage() {
         days_of_week: [] as number[],
         notes: ''
     });
+
+    const [editModalVisible, setEditModalVisible] = useState(false);
+    const [editForm, setEditForm] = useState({
+        id: 0,
+        gms_id: '',
+        user_id: '',
+        scheduled_date: '',
+        notes: ''
+    });
+
+    const showToast = (message: string, type: 'success' | 'error' = 'success') => {
+        setToast({ message, type });
+        setTimeout(() => setToast(null), 3000);
+    };
 
     const WEEKDAYS = [
         { id: 0, label: 'Mon' },
@@ -134,16 +164,132 @@ export default function AdminVisitsPage() {
         }
     };
 
-    const filteredAssignments = assignments.filter(a => 
-        a.user?.first_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        a.user?.last_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        a.gms?.name?.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    const filteredAssignments = assignments.filter(a => {
+        const matchesSearch = a.user?.first_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            a.user?.last_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            a.gms?.name?.toLowerCase().includes(searchQuery.toLowerCase());
+        const matchesStatus = statusFilter === 'all' || a.status === statusFilter;
+        return matchesSearch && matchesStatus;
+    });
+
+    const toggleSelection = (id: number) => {
+        setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
+    };
+
+    const handleBulkDelete = async () => {
+        if (selectedIds.length === 0) return;
+        if (!window.confirm(`Are you sure you want to delete ${selectedIds.length} schedules?`)) return;
+        const ok = await GMSService.bulkDeleteAssignments(selectedIds);
+        if (ok) {
+            showToast(`Deleted ${selectedIds.length} schedules`, 'success');
+            setSelectedIds([]);
+            loadData();
+        } else {
+            showToast('Failed to delete schedules', 'error');
+        }
+    };
+
+    const handleDeleteClick = (item: Assignment) => {
+        setItemToDelete(item);
+        setDeleteMode('single');
+        setDeleteConfirmVisible(true);
+        setOpenMenuId(null);
+    };
+
+    const confirmDelete = async () => {
+        if (!itemToDelete) return;
+        setSaving(true);
+        const ok = await GMSService.deleteAssignment(itemToDelete.id, deleteMode);
+        setSaving(false);
+        if (ok) {
+            showToast('Schedule deleted successfully', 'success');
+            setDeleteConfirmVisible(false);
+            setItemToDelete(null);
+            loadData();
+        } else {
+            showToast('Failed to delete schedule', 'error');
+        }
+    };
+
+    const handlePause = async (item: Assignment) => {
+        setOpenMenuId(null);
+        if (!window.confirm('Pause all future recurring visits for this schedule?')) return;
+        const ok = await GMSService.pauseAssignment(item.id);
+        if (ok) {
+            showToast('Recurring schedule paused', 'success');
+            loadData();
+        } else {
+            showToast('Failed to pause schedule', 'error');
+        }
+    };
+
+    const handleResume = async (item: Assignment) => {
+        setOpenMenuId(null);
+        const ok = await GMSService.resumeAssignment(item.id);
+        if (ok) {
+            showToast('Recurring schedule resumed', 'success');
+            loadData();
+        } else {
+            showToast('Failed to resume schedule', 'error');
+        }
+    };
+
+    const handleEditClick = (item: Assignment) => {
+        setEditForm({
+            id: item.id,
+            gms_id: item.gms_id ? item.gms_id.toString() : '',
+            user_id: item.user_id ? item.user_id.toString() : '',
+            scheduled_date: item.scheduled_date ? item.scheduled_date.split('T')[0] : '',
+            notes: item.notes || ''
+        });
+        setEditModalVisible(true);
+        setOpenMenuId(null);
+    };
+
+    const handleUpdateVisit = async () => {
+        if (!editForm.gms_id || !editForm.user_id || !editForm.scheduled_date) {
+            showToast('Please fill in all required fields.', 'error');
+            return;
+        }
+        setSaving(true);
+        const ok = await GMSService.updateAssignment(editForm.id, {
+            gms_id: parseInt(editForm.gms_id),
+            user_id: parseInt(editForm.user_id),
+            scheduled_date: new Date(editForm.scheduled_date).toISOString(),
+            notes: editForm.notes
+        });
+        setSaving(false);
+        if (ok) {
+            showToast('Schedule updated successfully', 'success');
+            setEditModalVisible(false);
+            loadData();
+        } else {
+            showToast('Failed to update schedule', 'error');
+        }
+    };
+
+    const handleViewDetails = (item: Assignment) => {
+        setSelectedItem(item);
+        setDetailsModalVisible(true);
+        setOpenMenuId(null);
+    };
 
     const isDark = theme === 'dark';
 
     return (
         <AdminWebLayout title="Visits Tracking">
+            {/* Toast Notification */}
+            {toast && (
+                <View style={{
+                    position: 'absolute', top: 40, right: 40, zIndex: 9999,
+                    backgroundColor: toast.type === 'success' ? colors.success : colors.danger,
+                    paddingHorizontal: 20, paddingVertical: 12, borderRadius: 8,
+                    shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 10, elevation: 5
+                }}>
+                    <Text style={{ color: '#fff', fontWeight: 'bold' }}>{toast.message}</Text>
+                </View>
+            )}
+
             {/* Header & Search Area */}
             <View style={vSt.headerArea}>
                 <View style={vSt.searchContainer}>
@@ -160,16 +306,21 @@ export default function AdminVisitsPage() {
                 </View>
                 
                 <View style={vSt.actionButtons}>
+                    {selectedIds.length > 0 && (
+                        <TouchableOpacity 
+                            style={[vSt.scheduleBtn, { backgroundColor: colors.danger }]}
+                            onPress={handleBulkDelete}
+                        >
+                            <Ionicons name="trash" size={20} color="#fff" />
+                            <Text style={vSt.scheduleBtnText}>Delete ({selectedIds.length})</Text>
+                        </TouchableOpacity>
+                    )}
                     <TouchableOpacity 
                         style={[vSt.scheduleBtn, { backgroundColor: colors.primary }]}
                         onPress={() => setModalVisible(true)}
                     >
                         <Ionicons name="add" size={20} color="#fff" />
                         <Text style={vSt.scheduleBtnText}>Schedule Visit</Text>
-                    </TouchableOpacity>
-                    
-                    <TouchableOpacity style={vSt.filterBtn}>
-                        <Text style={{ color: colors.primary, fontWeight: '600' }}>Clear Filters</Text>
                     </TouchableOpacity>
                 </View>
             </View>
@@ -178,12 +329,16 @@ export default function AdminVisitsPage() {
             <Card style={[vSt.tableCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
                 {/* Table Header */}
                 <View style={[vSt.tableHeader, { borderBottomColor: colors.border }]}>
+                    <View style={{ width: 40, alignItems: 'center' }}>
+                        <TouchableOpacity onPress={() => setSelectedIds(selectedIds.length === filteredAssignments.length ? [] : filteredAssignments.map(a => a.id))}>
+                            <Ionicons name={selectedIds.length === filteredAssignments.length && filteredAssignments.length > 0 ? "checkbox" : "square-outline"} size={20} color={colors.textMuted} />
+                        </TouchableOpacity>
+                    </View>
                     <Text style={[vSt.colHeader, { flex: 2, color: colors.textMuted }]}>MERCHANDISER</Text>
                     <Text style={[vSt.colHeader, { flex: 2, color: colors.textMuted }]}>STORE NAME</Text>
                     <Text style={[vSt.colHeader, { flex: 1.5, color: colors.textMuted }]}>PLANNED DATE</Text>
-                    <Text style={[vSt.colHeader, { flex: 1.5, color: colors.textMuted }]}>CHECK-IN / OUT</Text>
-                    <Text style={[vSt.colHeader, { flex: 1, color: colors.textMuted }]}>DURATION</Text>
                     <Text style={[vSt.colHeader, { flex: 1, color: colors.textMuted, textAlign: 'center' }]}>STATUS</Text>
+                    <Text style={[vSt.colHeader, { width: 60, textAlign: 'center', color: colors.textMuted }]}>ACTIONS</Text>
                 </View>
 
                 {loading ? (
@@ -194,9 +349,21 @@ export default function AdminVisitsPage() {
                         <Text style={{ color: colors.textMuted, marginTop: 12 }}>No visits found.</Text>
                     </View>
                 ) : (
-                    <ScrollView>
+                    <ScrollView contentContainerStyle={{ paddingBottom: 160 }}>
                         {filteredAssignments.map((item) => (
-                            <View key={item.id} style={[vSt.tableRow, { borderBottomColor: colors.border + '50' }]}>
+                            <View key={item.id} style={[vSt.tableRow, { 
+                                borderBottomColor: colors.border + '50', 
+                                backgroundColor: selectedIds.includes(item.id) ? colors.primary + '10' : 'transparent',
+                                zIndex: openMenuId === item.id ? 9999 : 1,
+                                ...(Platform.OS === 'web' ? { position: 'relative' } : {})
+                            }]}>
+                                {/* Checkbox */}
+                                <View style={{ width: 40, alignItems: 'center' }}>
+                                    <TouchableOpacity onPress={() => toggleSelection(item.id)}>
+                                        <Ionicons name={selectedIds.includes(item.id) ? "checkbox" : "square-outline"} size={20} color={selectedIds.includes(item.id) ? colors.primary : colors.border} />
+                                    </TouchableOpacity>
+                                </View>
+
                                 {/* Merchandiser */}
                                 <View style={{ flex: 2, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
                                     <View style={vSt.avatar}>
@@ -223,46 +390,60 @@ export default function AdminVisitsPage() {
                                     <Text style={[vSt.rowMainText, { color: colors.text }]}>
                                         {item.scheduled_date ? format(new Date(item.scheduled_date), 'MMM dd, yyyy') : 'No date'}
                                     </Text>
-                                </View>
-
-                                {/* Check-in/out */}
-                                <View style={{ flex: 1.5 }}>
-                                    <Text style={[vSt.rowSubText, { color: item.check_in ? colors.success : colors.textMuted }]}>
-                                        {item.check_in ? format(new Date(item.check_in), 'hh:mm a') : 'Not Recorded'}
-                                    </Text>
-                                    <Text style={[vSt.rowSubText, { color: item.check_out ? colors.danger : colors.textMuted }]}>
-                                        {item.check_out ? format(new Date(item.check_out), 'hh:mm a') : 'Not Recorded'}
-                                    </Text>
-                                </View>
-
-                                {/* Duration */}
-                                <View style={{ flex: 1 }}>
-                                    <Text style={[vSt.rowMainText, { color: colors.text }]}>
-                                        {item.duration_minutes ? `${item.duration_minutes}m` : (item.status === 'completed' ? 'N/A' : '0m')}
-                                    </Text>
+                                    {item.rule_id && (
+                                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 }}>
+                                            <Ionicons name="repeat" size={12} color={colors.primary} />
+                                            <Text style={{ fontSize: 11, color: colors.primary, fontWeight: '600' }}>Recurring</Text>
+                                        </View>
+                                    )}
                                 </View>
 
                                 {/* Status */}
                                 <View style={{ flex: 1, alignItems: 'center' }}>
-                                    <View style={[vSt.statusBadge, { backgroundColor: item.status === 'completed' ? colors.success + '15' : colors.primary + '15' }]}>
-                                        <View style={[vSt.statusDot, { backgroundColor: item.status === 'completed' ? colors.success : colors.primary }]} />
-                                        <Text style={[vSt.statusText, { color: item.status === 'completed' ? colors.success : colors.primary }]}>
+                                    <View style={[vSt.statusBadge, { backgroundColor: item.status === 'completed' ? colors.success + '15' : (item.status === 'cancelled' ? colors.danger + '15' : colors.primary + '15') }]}>
+                                        <View style={[vSt.statusDot, { backgroundColor: item.status === 'completed' ? colors.success : (item.status === 'cancelled' ? colors.danger : colors.primary) }]} />
+                                        <Text style={[vSt.statusText, { color: item.status === 'completed' ? colors.success : (item.status === 'cancelled' ? colors.danger : colors.primary) }]}>
                                             {item.status.toUpperCase()}
                                         </Text>
                                     </View>
                                 </View>
 
-                                {/* Action */}
-                                <View style={{ width: 120, alignItems: 'flex-end' }}>
-                                    {item.status === 'completed' ? (
-                                        <TouchableOpacity 
-                                            style={[vSt.viewReportBtn, { backgroundColor: colors.primary }]}
-                                            onPress={() => router.push(`/admin/visit-report/${item.id}`)}
-                                        >
-                                            <Text style={vSt.viewReportText}>View Report</Text>
-                                        </TouchableOpacity>
-                                    ) : (
-                                        <Text style={{ color: colors.textMuted, fontSize: 12, fontStyle: 'italic' }}>Pending...</Text>
+                                {/* Action Dropdown */}
+                                <View style={{ width: 60, alignItems: 'center', position: 'relative' }}>
+                                    <TouchableOpacity 
+                                        onPress={() => setOpenMenuId(openMenuId === item.id ? null : item.id)}
+                                        style={{ padding: 8 }}
+                                    >
+                                        <Ionicons name="ellipsis-vertical" size={20} color={colors.textMuted} />
+                                    </TouchableOpacity>
+
+                                    {openMenuId === item.id && (
+                                        <View style={[vSt.dropdownMenu, { backgroundColor: isDark ? '#1E293B' : '#FFFFFF', borderColor: colors.border }]}>
+                                            <TouchableOpacity style={vSt.dropdownItem} onPress={() => handleViewDetails(item)}>
+                                                <Ionicons name="eye-outline" size={16} color={colors.text} />
+                                                <Text style={{ color: colors.text, fontSize: 13, fontWeight: '500' }}>View Details</Text>
+                                            </TouchableOpacity>
+                                            <TouchableOpacity style={vSt.dropdownItem} onPress={() => handleEditClick(item)}>
+                                                <Ionicons name="create-outline" size={16} color={colors.text} />
+                                                <Text style={{ color: colors.text, fontSize: 13, fontWeight: '500' }}>Edit / Reschedule</Text>
+                                            </TouchableOpacity>
+                                            {item.rule_id && item.status !== 'cancelled' && (
+                                                <TouchableOpacity style={vSt.dropdownItem} onPress={() => handlePause(item)}>
+                                                    <Ionicons name="pause-outline" size={16} color={colors.text} />
+                                                    <Text style={{ color: colors.text, fontSize: 13, fontWeight: '500' }}>Pause Recurrence</Text>
+                                                </TouchableOpacity>
+                                            )}
+                                            {item.rule_id && item.status === 'cancelled' && (
+                                                <TouchableOpacity style={vSt.dropdownItem} onPress={() => handleResume(item)}>
+                                                    <Ionicons name="play-outline" size={16} color={colors.text} />
+                                                    <Text style={{ color: colors.text, fontSize: 13, fontWeight: '500' }}>Resume Recurrence</Text>
+                                                </TouchableOpacity>
+                                            )}
+                                            <TouchableOpacity style={vSt.dropdownItem} onPress={() => handleDeleteClick(item)}>
+                                                <Ionicons name="trash-outline" size={16} color={colors.danger} />
+                                                <Text style={{ color: colors.danger, fontSize: 13, fontWeight: '500' }}>Delete</Text>
+                                            </TouchableOpacity>
+                                        </View>
                                     )}
                                 </View>
                             </View>
@@ -461,6 +642,216 @@ export default function AdminVisitsPage() {
                     </View>
                 </View>
             </Modal>
+
+            {/* Delete Confirmation Modal */}
+            <Modal visible={deleteConfirmVisible} transparent animationType="fade">
+                <View style={vSt.modalOverlay}>
+                    <View style={[vSt.modalContent, { backgroundColor: colors.surface, width: 400 }]}>
+                        <View style={{ padding: 24 }}>
+                            <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: colors.danger + '15', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+                                <Ionicons name="warning" size={24} color={colors.danger} />
+                            </View>
+                            <Text style={{ fontSize: 18, fontWeight: '800', color: colors.text, marginBottom: 8 }}>Delete Schedule</Text>
+                            <Text style={{ color: colors.textMuted, fontSize: 14, marginBottom: 24 }}>
+                                Are you sure you want to delete this scheduled visit?
+                            </Text>
+
+                            {itemToDelete?.rule_id && (
+                                <View style={{ marginBottom: 24, gap: 12 }}>
+                                    <TouchableOpacity 
+                                        style={[vSt.typeOption, { borderColor: deleteMode === 'single' ? colors.primary : colors.border, backgroundColor: deleteMode === 'single' ? colors.primary + '10' : 'transparent' }]}
+                                        onPress={() => setDeleteMode('single')}
+                                    >
+                                        <Ionicons name="calendar-outline" size={16} color={deleteMode === 'single' ? colors.primary : colors.textMuted} />
+                                        <Text style={{ color: deleteMode === 'single' ? colors.primary : colors.text, fontWeight: '600' }}>Only this visit</Text>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity 
+                                        style={[vSt.typeOption, { borderColor: deleteMode === 'future' ? colors.primary : colors.border, backgroundColor: deleteMode === 'future' ? colors.primary + '10' : 'transparent' }]}
+                                        onPress={() => setDeleteMode('future')}
+                                    >
+                                        <Ionicons name="arrow-forward-outline" size={16} color={deleteMode === 'future' ? colors.primary : colors.textMuted} />
+                                        <Text style={{ color: deleteMode === 'future' ? colors.primary : colors.text, fontWeight: '600' }}>This and future visits</Text>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity 
+                                        style={[vSt.typeOption, { borderColor: deleteMode === 'all' ? colors.primary : colors.border, backgroundColor: deleteMode === 'all' ? colors.primary + '10' : 'transparent' }]}
+                                        onPress={() => setDeleteMode('all')}
+                                    >
+                                        <Ionicons name="list-outline" size={16} color={deleteMode === 'all' ? colors.primary : colors.textMuted} />
+                                        <Text style={{ color: deleteMode === 'all' ? colors.primary : colors.text, fontWeight: '600' }}>All recurring visits</Text>
+                                    </TouchableOpacity>
+                                </View>
+                            )}
+
+                            <View style={{ flexDirection: 'row', gap: 12 }}>
+                                <TouchableOpacity 
+                                    style={{ flex: 1, padding: 12, borderRadius: 12, borderWidth: 1, borderColor: colors.border, alignItems: 'center' }}
+                                    onPress={() => setDeleteConfirmVisible(false)}
+                                >
+                                    <Text style={{ color: colors.text, fontWeight: '600' }}>Cancel</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity 
+                                    style={{ flex: 1, padding: 12, borderRadius: 12, backgroundColor: colors.danger, alignItems: 'center' }}
+                                    onPress={confirmDelete}
+                                    disabled={saving}
+                                >
+                                    {saving ? <ActivityIndicator color="#fff" /> : <Text style={{ color: '#fff', fontWeight: '600' }}>Delete</Text>}
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
+
+            {/* Visit Details Modal */}
+            <Modal visible={detailsModalVisible} transparent animationType="fade">
+                <View style={vSt.modalOverlay}>
+                    <View style={[vSt.modalContent, { backgroundColor: colors.surface }]}>
+                        <View style={vSt.modalHeader}>
+                            <Text style={[vSt.modalTitle, { color: colors.text }]}>Schedule Details</Text>
+                            <TouchableOpacity onPress={() => setDetailsModalVisible(false)}>
+                                <Ionicons name="close" size={24} color={colors.textMuted} />
+                            </TouchableOpacity>
+                        </View>
+                        <ScrollView style={{ padding: 24 }}>
+                            {selectedItem && (
+                                <View style={{ gap: 24 }}>
+                                    <View style={{ flexDirection: 'row', gap: 16 }}>
+                                        <View style={{ flex: 1, backgroundColor: colors.background, padding: 16, borderRadius: 12, borderWidth: 1, borderColor: colors.border }}>
+                                            <Text style={{ fontSize: 12, color: colors.textMuted, fontWeight: '700', marginBottom: 8 }}>MERCHANDISER</Text>
+                                            <Text style={{ fontSize: 16, fontWeight: '700', color: colors.text }}>{selectedItem.user?.first_name} {selectedItem.user?.last_name}</Text>
+                                            <Text style={{ fontSize: 13, color: colors.textMuted }}>ID: #{selectedItem.user?.id}</Text>
+                                        </View>
+                                        <View style={{ flex: 1, backgroundColor: colors.background, padding: 16, borderRadius: 12, borderWidth: 1, borderColor: colors.border }}>
+                                            <Text style={{ fontSize: 12, color: colors.textMuted, fontWeight: '700', marginBottom: 8 }}>STORE</Text>
+                                            <Text style={{ fontSize: 16, fontWeight: '700', color: colors.text }}>{selectedItem.gms?.name}</Text>
+                                            <Text style={{ fontSize: 13, color: colors.textMuted }}>{selectedItem.gms?.address}</Text>
+                                        </View>
+                                    </View>
+
+                                    <View style={{ backgroundColor: colors.background, padding: 16, borderRadius: 12, borderWidth: 1, borderColor: colors.border }}>
+                                        <Text style={{ fontSize: 12, color: colors.textMuted, fontWeight: '700', marginBottom: 12 }}>VISIT INFORMATION</Text>
+                                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
+                                            <Text style={{ color: colors.textMuted }}>Planned Date:</Text>
+                                            <Text style={{ color: colors.text, fontWeight: '600' }}>{selectedItem.scheduled_date ? format(new Date(selectedItem.scheduled_date), 'PPP') : 'N/A'}</Text>
+                                        </View>
+                                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
+                                            <Text style={{ color: colors.textMuted }}>Check In:</Text>
+                                            <Text style={{ color: colors.text, fontWeight: '600' }}>{selectedItem.check_in ? format(new Date(selectedItem.check_in), 'pp') : 'Not Checked In'}</Text>
+                                        </View>
+                                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
+                                            <Text style={{ color: colors.textMuted }}>Check Out:</Text>
+                                            <Text style={{ color: colors.text, fontWeight: '600' }}>{selectedItem.check_out ? format(new Date(selectedItem.check_out), 'pp') : 'Not Checked Out'}</Text>
+                                        </View>
+                                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
+                                            <Text style={{ color: colors.textMuted }}>Duration:</Text>
+                                            <Text style={{ color: colors.text, fontWeight: '600' }}>{selectedItem.duration_minutes || 0} minutes</Text>
+                                        </View>
+                                        <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                                            <Text style={{ color: colors.textMuted }}>Recurrence:</Text>
+                                            <Text style={{ color: colors.text, fontWeight: '600' }}>{selectedItem.rule_id ? `Recurring Rule #${selectedItem.rule_id}` : 'Single Visit'}</Text>
+                                        </View>
+                                    </View>
+
+                                    {selectedItem.status === 'completed' && (
+                                        <TouchableOpacity 
+                                            style={{ padding: 16, backgroundColor: colors.primary, borderRadius: 12, alignItems: 'center' }}
+                                            onPress={() => {
+                                                setDetailsModalVisible(false);
+                                                router.push(`/admin/visit-report/${selectedItem.id}`);
+                                            }}
+                                        >
+                                            <Text style={{ color: '#fff', fontWeight: '700' }}>Open Full Report</Text>
+                                        </TouchableOpacity>
+                                    )}
+                                </View>
+                            )}
+                        </ScrollView>
+                    </View>
+                </View>
+            </Modal>
+
+            {/* Edit Schedule Modal */}
+            <Modal visible={editModalVisible} transparent animationType="fade">
+                <View style={vSt.modalOverlay}>
+                    <View style={[vSt.modalContent, { backgroundColor: colors.surface }]}>
+                        <View style={vSt.modalHeader}>
+                            <Text style={[vSt.modalTitle, { color: colors.text }]}>Edit Schedule</Text>
+                            <TouchableOpacity onPress={() => setEditModalVisible(false)}>
+                                <Ionicons name="close" size={24} color={colors.textMuted} />
+                            </TouchableOpacity>
+                        </View>
+                        <ScrollView style={{ padding: 24 }}>
+                            <View style={vSt.formGroup}>
+                                <Text style={[vSt.label, { color: colors.text }]}>Stores *</Text>
+                                <View style={vSt.selectWrapper}>
+                                    <select 
+                                        value={editForm.gms_id}
+                                        onChange={e => setEditForm({...editForm, gms_id: (e.target as any).value})}
+                                        style={{ width: '100%', padding: 12, backgroundColor: colors.background, color: colors.text, border: 'none', outline: 'none', fontSize: 14 }}
+                                    >
+                                        <option value="">Select a store --</option>
+                                        {stores.map(s => <option key={s.id} value={s.id}>{s.name} ({s.city})</option>)}
+                                    </select>
+                                </View>
+                            </View>
+
+                            <View style={vSt.formGroup}>
+                                <Text style={[vSt.label, { color: colors.text }]}>Merchandiser *</Text>
+                                <View style={vSt.selectWrapper}>
+                                    <select 
+                                        value={editForm.user_id}
+                                        onChange={e => setEditForm({...editForm, user_id: (e.target as any).value})}
+                                        style={{ width: '100%', padding: 12, backgroundColor: colors.background, color: colors.text, border: 'none', outline: 'none', fontSize: 14 }}
+                                    >
+                                        <option value="">-- Select a merchandiser --</option>
+                                        {merchandisers.map(m => <option key={m.id} value={m.id}>{m.firstName} {m.lastName}</option>)}
+                                    </select>
+                                </View>
+                            </View>
+
+                            <View style={vSt.formGroup}>
+                                <Text style={[vSt.label, { color: colors.text }]}>Scheduled Date *</Text>
+                                {Platform.OS === 'web' ? (
+                                    <input 
+                                        type="date"
+                                        value={editForm.scheduled_date}
+                                        onChange={e => setEditForm({...editForm, scheduled_date: e.target.value})}
+                                        style={{ width: '100%', padding: '12px', backgroundColor: colors.background, color: colors.text, border: `1px solid ${colors.border}`, borderRadius: '12px', outline: 'none', fontSize: '14px' }}
+                                    />
+                                ) : (
+                                    <TextInput 
+                                        style={[vSt.modalInput, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border }]}
+                                        placeholder="YYYY-MM-DD"
+                                        placeholderTextColor={colors.textMuted}
+                                        value={editForm.scheduled_date}
+                                        onChangeText={t => setEditForm({...editForm, scheduled_date: t})}
+                                    />
+                                )}
+                            </View>
+
+                            <View style={vSt.formGroup}>
+                                <Text style={[vSt.label, { color: colors.text }]}>Notes (Optional)</Text>
+                                <TextInput 
+                                    style={[vSt.modalInput, vSt.textArea, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border }]}
+                                    placeholder="Add any additional notes or instructions..."
+                                    placeholderTextColor={colors.textMuted}
+                                    multiline
+                                    value={editForm.notes}
+                                    onChangeText={t => setEditForm({...editForm, notes: t})}
+                                />
+                            </View>
+
+                            <TouchableOpacity 
+                                style={[vSt.submitBtn, { backgroundColor: colors.primary }]}
+                                onPress={handleUpdateVisit}
+                                disabled={saving}
+                            >
+                                {saving ? <ActivityIndicator color="#fff" /> : <Text style={vSt.submitBtnText}>Update Schedule</Text>}
+                            </TouchableOpacity>
+                        </ScrollView>
+                    </View>
+                </View>
+            </Modal>
         </AdminWebLayout>
     );
 }
@@ -474,10 +865,10 @@ const vSt = StyleSheet.create({
     scheduleBtn: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 12, borderRadius: 12, gap: 8 },
     scheduleBtnText: { color: '#fff', fontWeight: '700' },
     filterBtn: { padding: 8 },
-    tableCard: { borderRadius: 16, borderWidth: 1, overflow: 'hidden' },
-    tableHeader: { flexDirection: 'row', padding: 16, borderBottomWidth: 1 },
+    tableCard: { borderRadius: 16, borderWidth: 1, overflow: 'visible' },
+    tableHeader: { flexDirection: 'row', padding: 16, borderBottomWidth: 1, zIndex: 2 },
     colHeader: { fontSize: 11, fontWeight: '800', letterSpacing: 0.5 },
-    tableRow: { flexDirection: 'row', padding: 16, borderBottomWidth: 1, alignItems: 'center' },
+    tableRow: { flexDirection: 'row', padding: 16, borderBottomWidth: 1, alignItems: 'center', position: 'relative' },
     avatar: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#80808020', justifyContent: 'center', alignItems: 'center' },
     avatarImg: { width: '100%', height: '100%', borderRadius: 16 },
     avatarText: { fontSize: 12, fontWeight: '700' },
@@ -527,5 +918,26 @@ const vSt = StyleSheet.create({
         borderRadius: 20,
         borderWidth: 1,
         marginBottom: 4
+    },
+    dropdownMenu: {
+        position: 'absolute',
+        top: 32,
+        right: 0,
+        width: 180,
+        borderWidth: 1,
+        borderRadius: 12,
+        padding: 4,
+        zIndex: 10,
+        shadowColor: '#000',
+        shadowOpacity: 0.1,
+        shadowRadius: 10,
+        elevation: 5
+    },
+    dropdownItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: 12,
+        gap: 12,
+        borderRadius: 8
     }
 });
