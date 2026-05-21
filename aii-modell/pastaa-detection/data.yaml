@@ -1,0 +1,13 @@
+train: ../train/images
+val: ../valid/images
+test: ../test/images
+
+nc: 11
+names: ['Cannelloni', 'Coude', 'Escargot', 'Fell', 'Papillon', 'Ressort', 'Spaghetti', 'Tagliatelle', 'langue doiseau', 'lasagne', 'plume']
+
+roboflow:
+  workspace: ikbel-abdelmalek
+  project: ikbel-abdelmalek
+  version: dataset
+  license: Private
+  url: https://app.roboflow.com/ikbel-abdelmalek/ikbel-abdelmalek/dataset

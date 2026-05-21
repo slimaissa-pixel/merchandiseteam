@@ -1,0 +1,25 @@
+{
+    "users": [
+        {
+            "id": "u1",
+            "name": "Admin User",
+            "email": "admin@test.com",
+            "password_hash": "$2a$10$X7.G..",
+            "role": "admin"
+        },
+        {
+            "id": "u2",
+            "name": "Supervisor User",
+            "email": "supervisor@test.com",
+            "password_hash": "$2a$10$X7.G..",
+            "role": "supervisor"
+        },
+        {
+            "id": "u3",
+            "name": "Merchandiser User",
+            "email": "merch@test.com",
+            "password_hash": "$2a$10$X7.G..",
+            "role": "merchandiser"
+        }
+    ]
+}

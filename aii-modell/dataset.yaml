@@ -1,0 +1,5 @@
+train: C:\Users\DHIB-WELD-DHIBA\ai-model\dataset\train
+val: C:\Users\DHIB-WELD-DHIBA\ai-model\dataset\val
+
+nc: 1 
+names: ["product"]

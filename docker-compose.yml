@@ -1,0 +1,127 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgis/postgis:15-3.3
+    container_name: merchandiserteam_db
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - merchandiser_network
+
+  redis:
+    image: redis:7-alpine
+    container_name: merchandiserteam_redis
+    restart: always
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - merchandiser_network
+
+  backend:
+    build:
+      context: ./backend
+    container_name: merchandiserteam_backend
+    restart: always
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./backend/.env
+    environment:
+      PORT: 8000
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/postgres
+      REDIS_URL: redis://redis:6379
+      PASTA_AI_API_URL: http://ai-model:8001
+      PYTHONPATH: .
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./backend/uploads:/app/uploads
+      - ./backend/app:/app/app
+      - ./backend/scripts:/app/scripts
+    command: >
+      sh -c "
+      python scripts/seed_full.py &&
+      uvicorn main:app --host 0.0.0.0 --port 8000
+      "
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/').getcode() == 200"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - merchandiser_network
+
+  ai-model:
+    build:
+      context: ./aii-modell
+      dockerfile: Dockerfile
+    container_name: merchandiserteam_ai
+    restart: unless-stopped
+    ports:
+      - "8001:8001"
+    environment:
+      HOST: 0.0.0.0
+      PORT: 8001
+      UVICORN_RELOAD: "false"
+    networks:
+      - merchandiser_network
+
+  worker:
+    build:
+      context: ./backend
+    container_name: merchandiserteam_worker
+    restart: always
+    env_file:
+      - ./backend/.env
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/postgres
+      REDIS_URL: redis://redis:6379
+      PYTHONPATH: .
+    depends_on:
+      - db
+      - redis
+    networks:
+      - merchandiser_network
+
+  dashboard:
+    image: eoranged/rq-dashboard
+    container_name: merchandiserteam_dashboard
+    restart: always
+    ports:
+      - "9181:9181"
+    environment:
+      RQ_DASHBOARD_REDIS_URL: redis://redis:6379
+    depends_on:
+      - redis
+    networks:
+      - merchandiser_network
+
+networks:
+  merchandiser_network:
+    driver: bridge
+    name: merchandiser_network
+
+volumes:
+  postgres_data:
+  app_uploads:
