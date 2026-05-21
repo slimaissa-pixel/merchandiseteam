@@ -57,6 +57,23 @@ export const GMSService = {
         }
     },
 
+    assignRecurringMerchandiser: async (data: {
+        gms_id: number;
+        user_id: number;
+        start_date: string;
+        end_date: string;
+        days_of_week: number[];
+        notes?: string;
+    }): Promise<{ success: boolean; rule_id?: number; assignments_created?: number; skipped_for_leave?: number }> => {
+        try {
+            const response = await apiClient.post('/api/gms/assign/recurring', data);
+            return response.data;
+        } catch (error) {
+            console.error('[GMS] Assign recurring error:', error);
+            return { success: false };
+        }
+    },
+
     getAllAssignments: async (): Promise<Assignment[]> => {
         try {
             const response = await apiClient.get('/api/gms/assignments/');

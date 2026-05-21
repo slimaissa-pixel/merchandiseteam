@@ -59,3 +59,11 @@ class GMSAssignmentResponse(GMSAssignmentCreate):
 
     class Config:
         from_attributes = True
+
+class GMSAssignmentRecurringCreate(BaseModel):
+    user_id: int
+    gms_id: int
+    start_date: datetime
+    end_date: datetime
+    days_of_week: List[int] # 0=Mon, 1=Tue, ..., 6=Sun
+    notes: Optional[str] = None

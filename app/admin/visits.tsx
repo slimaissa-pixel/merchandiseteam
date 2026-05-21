@@ -42,9 +42,22 @@ export default function AdminVisitsPage() {
         gms_id: '',
         user_id: '',
         scheduled_date: new Date().toISOString().split('T')[0],
-        is_weekly: false,
+        schedule_type: 'single', // 'single' | 'recurring'
+        duration_months: 8,
+        days_of_week: [] as number[],
         notes: ''
     });
+
+    const WEEKDAYS = [
+        { id: 0, label: 'Mon' },
+        { id: 1, label: 'Tue' },
+        { id: 2, label: 'Wed' },
+        { id: 3, label: 'Thu' },
+        { id: 4, label: 'Fri' },
+        { id: 5, label: 'Sat' },
+        { id: 6, label: 'Sun' }
+    ];
+
 
     const loadData = async () => {
         setLoading(true);
@@ -81,20 +94,28 @@ export default function AdminVisitsPage() {
                 notes: form.notes
             };
 
-            if (form.is_weekly) {
-                // Schedule for 5 days (Mon-Fri)
-                const startDate = new Date(form.scheduled_date);
-                const promises = [];
-                for (let i = 0; i < 5; i++) {
-                    const date = new Date(startDate);
-                    date.setDate(startDate.getDate() + i);
-                    // Skip weekends if you want, but simple for now:
-                    promises.push(GMSService.assignMerchandiser({
-                        ...baseData,
-                        scheduled_date: date.toISOString()
-                    }));
+            if (form.schedule_type === 'recurring') {
+                if (form.days_of_week.length === 0) {
+                    alert('Please select at least one working day.');
+                    setSaving(false);
+                    return;
                 }
-                await Promise.all(promises);
+                const startDate = new Date(form.scheduled_date);
+                const endDate = new Date(startDate);
+                endDate.setMonth(endDate.getMonth() + form.duration_months);
+
+                const res = await GMSService.assignRecurringMerchandiser({
+                    ...baseData,
+                    start_date: startDate.toISOString(),
+                    end_date: endDate.toISOString(),
+                    days_of_week: form.days_of_week
+                });
+                
+                if (res && res.success) {
+                    alert(`Successfully scheduled! Created ${res.assignments_created} visits.` + (res.skipped_for_leave ? ` Skipped ${res.skipped_for_leave} dates due to approved leave.` : ''));
+                } else {
+                    alert('Failed to schedule recurring visits.');
+                }
             } else {
                 await GMSService.assignMerchandiser({
                     ...baseData,
@@ -103,7 +124,7 @@ export default function AdminVisitsPage() {
             }
 
             setModalVisible(false);
-            setForm({ ...form, notes: '', is_weekly: false });
+            setForm({ ...form, notes: '', schedule_type: 'single', days_of_week: [] });
             loadData();
         } catch (error) {
             console.error(error);
@@ -310,24 +331,86 @@ export default function AdminVisitsPage() {
                                 <Text style={[vSt.label, { color: colors.text }]}>Schedule Type</Text>
                                 <View style={{ flexDirection: 'row', gap: 12 }}>
                                     <TouchableOpacity 
-                                        style={[vSt.typeOption, { borderColor: !form.is_weekly ? colors.primary : colors.border, backgroundColor: !form.is_weekly ? colors.primary + '10' : 'transparent' }]}
-                                        onPress={() => setForm({...form, is_weekly: false})}
+                                        style={[vSt.typeOption, { borderColor: form.schedule_type === 'single' ? colors.primary : colors.border, backgroundColor: form.schedule_type === 'single' ? colors.primary + '10' : 'transparent' }]}
+                                        onPress={() => setForm({...form, schedule_type: 'single'})}
                                     >
-                                        <Ionicons name="calendar" size={16} color={!form.is_weekly ? colors.primary : colors.textMuted} />
-                                        <Text style={{ color: !form.is_weekly ? colors.primary : colors.text, fontWeight: '600', fontSize: 13 }}>Single Day</Text>
+                                        <Ionicons name="calendar" size={16} color={form.schedule_type === 'single' ? colors.primary : colors.textMuted} />
+                                        <Text style={{ color: form.schedule_type === 'single' ? colors.primary : colors.text, fontWeight: '600', fontSize: 13 }}>Single Visit</Text>
                                     </TouchableOpacity>
                                     <TouchableOpacity 
-                                        style={[vSt.typeOption, { borderColor: form.is_weekly ? colors.primary : colors.border, backgroundColor: form.is_weekly ? colors.primary + '10' : 'transparent' }]}
-                                        onPress={() => setForm({...form, is_weekly: true})}
+                                        style={[vSt.typeOption, { borderColor: form.schedule_type === 'recurring' ? colors.primary : colors.border, backgroundColor: form.schedule_type === 'recurring' ? colors.primary + '10' : 'transparent' }]}
+                                        onPress={() => setForm({...form, schedule_type: 'recurring'})}
                                     >
-                                        <Ionicons name="repeat" size={16} color={form.is_weekly ? colors.primary : colors.textMuted} />
-                                        <Text style={{ color: form.is_weekly ? colors.primary : colors.text, fontWeight: '600', fontSize: 13 }}>Full Week (5 days)</Text>
+                                        <Ionicons name="repeat" size={16} color={form.schedule_type === 'recurring' ? colors.primary : colors.textMuted} />
+                                        <Text style={{ color: form.schedule_type === 'recurring' ? colors.primary : colors.text, fontWeight: '600', fontSize: 13 }}>Recurring Schedule</Text>
                                     </TouchableOpacity>
                                 </View>
                             </View>
 
+                            {form.schedule_type === 'recurring' && (
+                                <>
+                                    <View style={vSt.formGroup}>
+                                        <Text style={[vSt.label, { color: colors.text }]}>Repeat Duration</Text>
+                                        <View style={vSt.selectWrapper}>
+                                            <select 
+                                                value={form.duration_months}
+                                                onChange={e => setForm({...form, duration_months: parseInt((e.target as any).value)})}
+                                                style={{
+                                                    width: '100%',
+                                                    padding: 12,
+                                                    backgroundColor: colors.background,
+                                                    color: colors.text,
+                                                    border: 'none',
+                                                    outline: 'none',
+                                                    fontSize: 14
+                                                }}
+                                            >
+                                                <option value={1}>1 Month</option>
+                                                <option value={3}>3 Months</option>
+                                                <option value={6}>6 Months</option>
+                                                <option value={8}>8 Months</option>
+                                                <option value={12}>1 Year</option>
+                                                <option value={24}>2 Years</option>
+                                            </select>
+                                        </View>
+                                    </View>
+
+                                    <View style={vSt.formGroup}>
+                                        <Text style={[vSt.label, { color: colors.text }]}>Working Days (Select multiple)</Text>
+                                        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                                            {WEEKDAYS.map(day => {
+                                                const isSelected = form.days_of_week.includes(day.id);
+                                                return (
+                                                    <TouchableOpacity 
+                                                        key={day.id}
+                                                        style={[vSt.dayBadge, { 
+                                                            backgroundColor: isSelected ? colors.primary : colors.background,
+                                                            borderColor: isSelected ? colors.primary : colors.border
+                                                        }]}
+                                                        onPress={() => {
+                                                            const newDays = isSelected 
+                                                                ? form.days_of_week.filter(d => d !== day.id)
+                                                                : [...form.days_of_week, day.id];
+                                                            setForm({...form, days_of_week: newDays});
+                                                        }}
+                                                    >
+                                                        <Text style={{ 
+                                                            color: isSelected ? '#fff' : colors.textMuted, 
+                                                            fontWeight: '600', 
+                                                            fontSize: 12 
+                                                        }}>
+                                                            {day.label}
+                                                        </Text>
+                                                    </TouchableOpacity>
+                                                );
+                                            })}
+                                        </View>
+                                    </View>
+                                </>
+                            )}
+
                             <View style={vSt.formGroup}>
-                                <Text style={[vSt.label, { color: colors.text }]}>{form.is_weekly ? 'Starting Date *' : 'Scheduled Date *'}</Text>
+                                <Text style={[vSt.label, { color: colors.text }]}>{form.schedule_type === 'recurring' ? 'Starting Date *' : 'Scheduled Date *'}</Text>
                                 {Platform.OS === 'web' ? (
                                     <input 
                                         type="date"
@@ -437,5 +520,12 @@ const vSt = StyleSheet.create({
         color: '#fff',
         fontSize: 12,
         fontWeight: '700'
+    },
+    dayBadge: {
+        paddingHorizontal: 14,
+        paddingVertical: 8,
+        borderRadius: 20,
+        borderWidth: 1,
+        marginBottom: 4
     }
 });

@@ -9,12 +9,15 @@ from app.models.user import User
 from app.models.visit import Visit
 from app.models.workday import Workday
 from app.models.notification import Notification
+from app.models.schedule import ScheduleRule
+from app.models.leave_request import LeaveRequest
 from app.schemas.gms import (
     GMSCreate, GMSResponse, GMSBase,
-    GMSWithDistance, GMSAssignmentCreate, GMSAssignmentResponse
+    GMSWithDistance, GMSAssignmentCreate, GMSAssignmentResponse, GMSAssignmentRecurringCreate
 )
 from app.api.dependencies.deps import get_db, get_current_user
 from geoalchemy2.elements import WKTElement
+from datetime import timedelta, date
 
 router = APIRouter()
 
@@ -82,6 +85,100 @@ def assign_merchandiser(
         db.commit()
 
     return db_assign
+
+
+# -------------------------------
+# Assign a merchandiser to a store (Recurring)
+# -------------------------------
+@router.post("/assign/recurring")
+def assign_recurring_merchandiser(
+    payload: GMSAssignmentRecurringCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    if current_user.role not in ['admin', 'supervisor']:
+        raise HTTPException(status_code=403, detail="Not allowed")
+
+    if payload.end_date < payload.start_date:
+        raise HTTPException(status_code=400, detail="End date must be after start date")
+
+    # Create Schedule Rule
+    rule = ScheduleRule(
+        user_id=payload.user_id,
+        gms_id=payload.gms_id,
+        start_date=payload.start_date.date(),
+        end_date=payload.end_date.date(),
+        frequency="weekly",
+        days_of_week=payload.days_of_week
+    )
+    db.add(rule)
+    db.flush() # Get rule.id
+
+    # Fetch approved leaves
+    approved_leaves = db.query(LeaveRequest).filter(
+        LeaveRequest.user_id == payload.user_id,
+        LeaveRequest.status == "approved",
+        LeaveRequest.end_date >= payload.start_date.date(),
+        LeaveRequest.start_date <= payload.end_date.date()
+    ).all()
+
+    def is_on_leave(dt: date):
+        for leave in approved_leaves:
+            if leave.start_date <= dt <= leave.end_date:
+                return True
+        return False
+
+    current_date = payload.start_date.date()
+    assignments_created = 0
+    skipped_for_leave = 0
+
+    while current_date <= payload.end_date.date():
+        if current_date.weekday() in payload.days_of_week:
+            if is_on_leave(current_date):
+                skipped_for_leave += 1
+            else:
+                # Check for existing
+                existing = db.query(GMSAssignment).filter(
+                    GMSAssignment.user_id == payload.user_id,
+                    GMSAssignment.gms_id == payload.gms_id,
+                    func.date(GMSAssignment.scheduled_date) == current_date
+                ).first()
+
+                if not existing:
+                    assign = GMSAssignment(
+                        user_id=payload.user_id,
+                        gms_id=payload.gms_id,
+                        scheduled_date=current_date, # Or add time if needed
+                        notes=payload.notes,
+                        rule_id=rule.id,
+                        status="scheduled"
+                    )
+                    db.add(assign)
+                    assignments_created += 1
+
+        current_date += timedelta(days=1)
+
+    db.commit()
+
+    # Send notification
+    store = db.query(GMS).filter(GMS.id == payload.gms_id).first()
+    if store and assignments_created > 0:
+        notif = Notification(
+            user_id=payload.user_id,
+            title="New Recurring Schedule",
+            message=f"You have been assigned to '{store.name}' for {assignments_created} visits.",
+            type="info",
+            icon="calendar"
+        )
+        db.add(notif)
+        db.commit()
+
+    return {
+        "success": True,
+        "rule_id": rule.id,
+        "assignments_created": assignments_created,
+        "skipped_for_leave": skipped_for_leave
+    }
 
 
 # -------------------------------
