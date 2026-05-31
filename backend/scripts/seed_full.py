@@ -19,11 +19,111 @@ def seed_full():
     try:
         # 1. Seed Users
         users_data = [
-            {"email": "admin@admin.com", "first_name": "Mohamed", "last_name": "Mehrez", "role": "admin"},
-            {"email": "supervisor@sup.com", "first_name": "Mahmoud", "last_name": "Livreur", "role": "supervisor"},
-            {"email": "merch@merch.com", "first_name": "Marchandisant", "last_name": "001", "role": "merchandiser"},
-            {"email": "adel@merch.com", "first_name": "Adel", "last_name": "Mekni", "role": "merchandiser"},
-        ]
+            {
+                        "email": "admin@admin.com",
+                        "first_name": "Mohamed",
+                        "last_name": "Mehrez",
+                        "hashed_password": "$2b$12$jGSJ.P5p9VnLkf4zWBm49.UyEn/zqeG1wMtQd9LaA8qPNnBINf25C",
+                        "role": "admin",
+                        "phone": null,
+                        "status": "active",
+                        "is_active": true,
+                        "supervisor_id": null,
+                        "address": null,
+                        "tags": null
+            },
+            {
+                        "email": "supervisor@sup.com",
+                        "first_name": "Mahmoud",
+                        "last_name": "Livreur",
+                        "hashed_password": "$2b$12$HSvi1/fDTn4kshazta5U8.16Q8bcNiyyXQXlkx5bZYN9OO35nH5m2",
+                        "role": "supervisor",
+                        "phone": null,
+                        "status": "active",
+                        "is_active": true,
+                        "supervisor_id": null,
+                        "address": null,
+                        "tags": null
+            },
+            {
+                        "email": "merch@merch.com",
+                        "first_name": "Marchandisant",
+                        "last_name": "001",
+                        "hashed_password": "$2b$12$ttfWofyUCCwr8LeicB2qZOXNN8mwZ3pyuk91GWxvmr4Xl1gUkrZxy",
+                        "role": "merchandiser",
+                        "phone": "",
+                        "status": "active",
+                        "is_active": true,
+                        "supervisor_id": 2,
+                        "address": null,
+                        "tags": null
+            },
+            {
+                        "email": "adel@merch.com",
+                        "first_name": "Adel",
+                        "last_name": "Mekni",
+                        "hashed_password": "$2b$12$MyXOD.tH0QVrknOUZ3eL/eXEegHBn0G8dDVEjkbhu2wjYQ3kbDWHa",
+                        "role": "merchandiser",
+                        "phone": "",
+                        "status": "active",
+                        "is_active": true,
+                        "supervisor_id": 2,
+                        "address": null,
+                        "tags": null
+            },
+            {
+                        "email": "slim@merch.com",
+                        "first_name": "slim",
+                        "last_name": "aissa",
+                        "hashed_password": "$2b$12$/7bgf5WjL85iWNW03deihe6gBb08Hgu.MFrrwHkwxX8x2wpvawafG",
+                        "role": "merchandiser",
+                        "phone": "",
+                        "status": "active",
+                        "is_active": true,
+                        "supervisor_id": 2,
+                        "address": null,
+                        "tags": null
+            },
+            {
+                        "email": "karim@sup.com",
+                        "first_name": "karim",
+                        "last_name": "gharbi",
+                        "hashed_password": "$2b$12$mmfHK8ToB.FNArZFoKDnIOegqopkSS3dYKsYGefqTC9qZiPPFsu6.",
+                        "role": "supervisor",
+                        "phone": "",
+                        "status": "active",
+                        "is_active": true,
+                        "supervisor_id": null,
+                        "address": null,
+                        "tags": null
+            },
+            {
+                        "email": "slim@admin.com",
+                        "first_name": "slim",
+                        "last_name": "aissa",
+                        "hashed_password": "$2b$12$ImERQdDKuyafINr/dUC57uyoZrDORravVzT5vr4WQxRucL3EbXmmS",
+                        "role": "admin",
+                        "phone": "+216 52512911",
+                        "status": "active",
+                        "is_active": true,
+                        "supervisor_id": null,
+                        "address": "sousse",
+                        "tags": ""
+            },
+            {
+                        "email": "ahmed@merch.com",
+                        "first_name": "ahmed",
+                        "last_name": "ali",
+                        "hashed_password": "$2b$12$KrAee.89s6vzfu9u9tmhwOWIcx4pZTkHrW/BtvGTsAxK23h6T90Oa",
+                        "role": "merchandiser",
+                        "phone": "",
+                        "status": "active",
+                        "is_active": true,
+                        "supervisor_id": null,
+                        "address": "",
+                        "tags": ""
+            }
+]
         
         users = []
         for u_data in users_data:
@@ -63,10 +163,39 @@ def seed_full():
         
         # 2. Seed GMS Stores
         gms_data = [
-            {"name": "Carrefour Khezema", "address": "Route de Tunis, Sousse", "lat": 35.84578, "lng": 10.61174, "city": "Sousse"},
-            {"name": "Mall of Sousse", "address": "Kalaa Kebira, Sousse", "lat": 35.90372, "lng": 10.54372, "city": "Kalaa Kebira"},
-            {"name": "Monoprix Sahloul", "address": "Sahloul, Sousse", "lat": 35.8333, "lng": 10.5833, "city": "Sousse"},
-        ]
+            {
+                        "name": "Carrefour Khezema",
+                        "address": "Route de Tunis, Sousse",
+                        "latitude": 35.84578,
+                        "longitude": 10.61174,
+                        "city": "Sousse",
+                        "type": "marketplace"
+            },
+            {
+                        "name": "Mall of Sousse",
+                        "address": "Kalaa Kebira, Sousse",
+                        "latitude": 35.90372,
+                        "longitude": 10.54372,
+                        "city": "Kalaa Kebira",
+                        "type": "marketplace"
+            },
+            {
+                        "name": "Monoprix Sahloul",
+                        "address": "Sahloul, Sousse",
+                        "latitude": 35.8333,
+                        "longitude": 10.5833,
+                        "city": "Sousse",
+                        "type": "marketplace"
+            },
+            {
+                        "name": "Drugstore wajdi",
+                        "address": "RL 819 \u0637\u0645, Sousse, Hached, D\u00e9l\u00e9gation Sousse Jaouhara, Gouvernorat Sousse, 4002, Tunisie",
+                        "latitude": 35.82464305217938,
+                        "longitude": 10.616504614558778,
+                        "city": "Sousse",
+                        "type": "Supermarket"
+            }
+]
         
         stores = []
         for g_data in gms_data:

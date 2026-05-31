@@ -231,7 +231,7 @@ export default function NotificationsPage() {
                                         pointerEvents="none"
                                     >
                                         <View style={[styles.iconContainer, { backgroundColor: styles_conf.color + '15' }]}>
-                                            <Ionicons name={(item.icon || styles_conf.icon) as any} size={24} color={styles_conf.color} />
+                                            <Ionicons name={(item.icon || 'notifications-outline') as any} size={24} color={styles_conf.color} />
                                         </View>
                                         <View style={styles.contentContainer}>
                                             <View style={styles.topRow}>

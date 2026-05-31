@@ -95,17 +95,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                             console.log('[Auth] Background /me refresh failed.');
                         }
                 } else {
-                    // ✅ No stored session — check if there's an active Supabase OAuth session
-                    // (handles Google OAuth redirect with #access_token in URL)
-                    try {
-                        const { data: { session } } = await supabase.auth.getSession();
-                        if (session) {
-                            // Let onAuthStateChange handle the full login flow
-                            // Just delay setting null so we don't override it
-                            console.log('[Auth] Supabase session found on startup — waiting for onAuthStateChange.');
-                            return; // don't set user null; onAuthStateChange will set it
-                        }
-                    } catch (_) {}
                     if (isMounted) setUser(null);
                 }
             } catch (e) {
@@ -116,69 +105,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         };
         loadUser();
         return () => { isMounted = false; };
-    }, []);
-
-    // 🔐 Handle Supabase OAuth callback (Google Sign-In redirect)
-    useEffect(() => {
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-            if (event === 'SIGNED_IN' && session) {
-                // Check if we already have a stored session (avoid double-firing for normal login)
-                const stored = await StorageService.getItem(StorageKeys.USER_TOKEN);
-                if (stored === session.access_token) return;
-
-                try {
-                    setAuthTokenCache(session.access_token);
-                    await StorageService.setItem(StorageKeys.USER_TOKEN, session.access_token);
-                    if (session.refresh_token) {
-                        await StorageService.setItem(StorageKeys.REFRESH_TOKEN, session.refresh_token);
-                    }
-
-                    // Fetch full profile from backend DB
-                    const meResponse = await apiClient.get('/api/users/me');
-                    const me = meResponse.data;
-                    const meta = session.user.user_metadata || {};
-                    const googleName = meta.full_name || meta.name || '';
-                    const nameParts = googleName.split(' ');
-                    
-                    const loggedUser: User = {
-                        id: me.id?.toString() || '0',
-                        email: me.email || session.user.email || '',
-                        firstName: me.first_name || meta.given_name || (nameParts.length > 0 ? nameParts[0] : 'User'),
-                        lastName: me.last_name || meta.family_name || (nameParts.length > 1 ? nameParts.slice(1).join(' ') : ''),
-                        role: (me.role || 'merchandiser').toLowerCase().trim(),
-                        phone: me.phone || undefined,
-                        status: me.status || undefined,
-                        profileZone: me.profile_zone || undefined,
-                        profileImage: me.profile_image || session.user.user_metadata?.avatar_url || null,
-                        address: me.address || undefined,
-                        tags: me.tags || undefined,
-                        password: '',
-                    };
-                    await StorageService.setItem(StorageKeys.USER_SESSION, JSON.stringify(loggedUser));
-                    setUser(loggedUser);
-                } catch (e) {
-                    console.error('[Auth] OAuth onAuthStateChange /me failed:', e);
-                    // Fallback: build user from Supabase token metadata
-                    const meta = session.user.user_metadata || {};
-                    const googleName = meta.full_name || meta.name || '';
-                    const nameParts = googleName.split(' ');
-                    const fallbackUser: User = {
-                        id: session.user.id,
-                        email: session.user.email || '',
-                        firstName: meta.given_name || (nameParts.length > 0 ? nameParts[0] : 'User'),
-                        lastName: meta.family_name || (nameParts.length > 1 ? nameParts.slice(1).join(' ') : ''),
-                        role: 'merchandiser',
-                        profileImage: meta.avatar_url || null,
-                        password: '',
-                    };
-                    await StorageService.setItem(StorageKeys.USER_SESSION, JSON.stringify(fallbackUser));
-                    setUser(fallbackUser);
-                }
-            } else if (event === 'SIGNED_OUT') {
-                setUser(null);
-            }
-        });
-        return () => subscription.unsubscribe();
     }, []);
 
     // 🧭 Routing + RBAC

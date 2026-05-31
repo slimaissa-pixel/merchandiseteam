@@ -71,14 +71,6 @@ export default function SignupScreen() {
         .error-msg { display: flex; align-items: center; gap: 5px; font-size: 11px; color: #f87171; font-family: 'Inter', sans-serif; font-weight: 500; margin-top: 5px; }
         .link-text { color: ${COLOR.gold}; cursor: pointer; text-decoration: none; font-weight: 600; transition: color 0.2s; font-family: 'Inter', sans-serif; font-size: 14px; }
         .link-text:hover { color: ${COLOR.goldLight}; }
-        .google-btn {
-            display: flex; align-items: center; justify-content: center; gap: 11px; padding: 14px; border-radius: 13px;
-            background: ${isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.02)'};
-            border: 1px solid ${isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.08)'};
-            cursor: pointer; transition: all 0.2s; font-family: 'Inter', sans-serif; font-weight: 600;
-            color: ${isDark ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.6)'}; font-size: 13.5px; width: 100%;
-        }
-        .google-btn:hover { background: ${isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)'}; }
         .role-card {
             flex: 1; padding: 13px 10px; border-radius: 12px; cursor: pointer;
             border: 1px solid ${isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.08)'};
@@ -89,9 +81,6 @@ export default function SignupScreen() {
         .role-card-name { font-size: 12px; font-weight: 700; color: ${isDark ? 'rgba(255,255,255,0.75)' : 'rgba(0,0,0,0.75)'}; letter-spacing: 0.01em; }
         .role-card-sub { font-size: 10px; color: ${isDark ? 'rgba(255,255,255,0.28)' : 'rgba(0,0,0,0.4)'}; margin-top: 2px; }
         .role-card.selected .role-card-name { color: ${COLOR.gold}; }
-        .divider { display: flex; align-items: center; gap: 14px; margin: 24px 0; }
-        .div-line { flex: 1; height: 1px; background: ${isDark ? 'rgba(255,255,255,0.055)' : 'rgba(0,0,0,0.08)'}; }
-        .div-text { font-size: 10px; font-weight: 800; letter-spacing: 0.12em; color: ${isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.3)'}; font-family: 'Inter', sans-serif; }
         .sec-badge { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; color: ${isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.5)'}; font-family: 'Inter', sans-serif; font-weight: 600; padding: 6px 14px; border-radius: 20px; border: 1px solid rgba(74,222,128,0.2); background: rgba(74,222,128,0.03); margin-bottom: 26px; }
         .sec-dot { width: 6px; height: 6px; border-radius: 50%; background: #22c55e; box-shadow: 0 0 8px rgba(34,197,94,0.6); flex-shrink: 0; animation: secPulse 2s infinite; }
         @keyframes secPulse { 0%,100%{opacity:1;transform:scale(1);} 50%{opacity:0.7;transform:scale(1.4);} }
@@ -121,13 +110,6 @@ export default function SignupScreen() {
 
     const clearError = (field: string) => {
         if (errors[field]) setErrors(prev => { const n = { ...prev }; delete n[field]; return n; });
-    };
-
-    const handleGoogleSignIn = () => {
-        showToast({
-            message: 'Enterprise Google registry is currently in read-only mode.',
-            type: 'info'
-        });
     };
 
     const handleRegister = async () => {
@@ -310,30 +292,6 @@ export default function SignupScreen() {
                         style={{ width: '100%', marginTop: 24 }}
                     />
 
-                    <View style={{ flexDirection: 'row', alignItems: 'center', marginVertical: 30 }}>
-                        <View style={{ flex: 1, height: 1, backgroundColor: 'rgba(255,255,255,0.05)' }} />
-                        <Text style={{ color: 'rgba(255,255,255,0.2)', marginHorizontal: 15, fontSize: 10, fontWeight: '800' }}>OR</Text>
-                        <View style={{ flex: 1, height: 1, backgroundColor: 'rgba(255,255,255,0.05)' }} />
-                    </View>
-
-                    <TouchableOpacity
-                        onPress={handleGoogleSignIn}
-                        style={{
-                            flexDirection: 'row',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: 12,
-                            backgroundColor: 'rgba(255,255,255,0.03)',
-                            padding: 16,
-                            borderRadius: 16,
-                            borderWidth: 1,
-                            borderColor: 'rgba(255,255,255,0.08)'
-                        }}
-                    >
-                        <Image source={require('@/assets/images/google_logo.png')} style={{ width: 20, height: 20 }} />
-                        <Text style={{ color: 'rgba(255,255,255,0.7)', fontWeight: '600' }}>Continue with Google</Text>
-                    </TouchableOpacity>
-
                     <TouchableOpacity onPress={handleNavigateLogin} style={{ marginTop: 32, alignItems: 'center' }}>
                         <Text style={{ color: COLOR.textMuted, fontSize: 14 }}>Already have an account? <Text style={{ color: COLOR.gold, fontWeight: '700' }}>Login here</Text></Text>
                     </TouchableOpacity>
@@ -470,17 +428,6 @@ export default function SignupScreen() {
                             {isLoading ? <ActivityIndicator color="#000" /> : <>Acknowledge &amp; Register &nbsp;✦</>}
                         </button>
                     </div>
-
-                    {/* Divider */}
-                    <div className="divider">
-                        <div className="div-line" /><div className="div-text">OR</div><div className="div-line" />
-                    </div>
-
-                    {/* Google */}
-                    <button className="google-btn" onClick={handleGoogleSignIn}>
-                        <Image source={require('@/assets/images/google_logo.png')} style={{ width: 17, height: 17 }} />
-                        Continue with Google Workspace
-                    </button>
 
                     {/* Footer */}
                     <div style={{ textAlign: 'center' as const, marginTop: 26 }}>

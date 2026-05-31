@@ -231,7 +231,7 @@ export default function MerchandiserNotifications() {
                                             pointerEvents="none"
                                         >
                                             <View style={[styles.iconBox, { backgroundColor: styles_conf.color + '15' }]}>
-                                                <Ionicons name={styles_conf.icon as any} size={22} color={styles_conf.color} />
+                                                <Ionicons name={(notification.icon || 'notifications-outline') as any} size={22} color={styles_conf.color} />
                                             </View>
                                             <View style={styles.notifBody}>
                                                 <View style={styles.notifHeader}>

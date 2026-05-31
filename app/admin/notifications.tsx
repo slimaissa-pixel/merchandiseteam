@@ -465,7 +465,7 @@ return (
                                             style={[styles.notifCard, { backgroundColor: item.is_read ? 'transparent' : colors.primary + '05', borderRadius: 16 }]}
                                         >
                                             <View style={[styles.iconContainer, { backgroundColor: config.color + '15' }]}>
-                                                <Ionicons name={config.icon as any} size={22} color={config.color} />
+                                                <Ionicons name={(item.icon || 'notifications-outline') as any} size={22} color={config.color} />
                                             </View>
                                             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
                                                 <Text style={[styles.notifTitle, { color: colors.text }]}>{item.title}</Text>

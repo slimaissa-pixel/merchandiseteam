@@ -22,7 +22,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { DARK_COLORS } from '@/constants/appColors';
 import { useAuth } from '@/context/AuthContext';
 import { Fonts } from '@/hooks/useFonts';
-import { GoogleAuthService } from '@/services/google.service';
 import FloatingLabelInput from '@/components/FloatingLabelInput';
 import PremiumGlowButton from '@/components/ui/PremiumGlowButton';
 import WebLogin from '@/components/WebLogin';
@@ -61,22 +60,6 @@ export default function LoginScreen() {
       await signIn(email, password, rememberMe);
     } catch (error: any) {
       Alert.alert('Login Failed', error.message || 'Invalid sign in !');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleGoogleSignIn = async () => {
-    setIsLoading(true);
-    try {
-      const result: any = await GoogleAuthService.signIn();
-      if (result.type === 'success') {
-        // Fallback for demo
-        await signIn('admin@admin.com', 'password123', true);
-        Alert.alert('Google Sync Success', `Connected as ${result.user.name}`);
-      }
-    } catch (error: any) {
-      Alert.alert('Google Sign-in failed', error.message || 'An error occurred during authentication');
     } finally {
       setIsLoading(false);
     }
@@ -136,7 +119,6 @@ export default function LoginScreen() {
         rememberMe={rememberMe}
         setRememberMe={setRememberMe}
         handleLogin={handleLogin}
-        handleGoogleSignIn={handleGoogleSignIn}
         isLoading={isLoading}
         handleAutoLogin={handleAutoLogin}
       />
@@ -222,17 +204,6 @@ export default function LoginScreen() {
                   No clearance? <Text style={styles.signUpTextAccent} onPress={() => router.push('/signup' as any)}>Issue Request</Text>
                 </Text>
               </View>
-
-              <View style={styles.dividerContainer}>
-                <View style={styles.dividerLine} />
-                <Text style={styles.dividerText}>OR</Text>
-                <View style={styles.dividerLine} />
-              </View>
-
-              <TouchableOpacity style={styles.googleButton} onPress={handleGoogleSignIn} disabled={isLoading}>
-                <Image source={require('@/assets/images/google_logo.png')} style={{ width: 20, height: 20, marginRight: 12 }} resizeMode="contain" />
-                <Text style={styles.googleButtonText}>Continue with Google Workspace</Text>
-              </TouchableOpacity>
             </Animated.View>
 
             {/* Quick Access Demo Buttons */}
@@ -366,38 +337,6 @@ const styles = StyleSheet.create({
   signUpTextAccent: {
     color: DARK_COLORS.gold,
     fontFamily: Fonts.headingSemiBold,
-  },
-  dividerContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: 28,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: 'rgba(255,255,255,0.08)',
-  },
-  dividerText: {
-    marginHorizontal: 16,
-    fontSize: 11,
-    fontFamily: Fonts.headingSemiBold,
-    color: 'rgba(255,255,255,0.3)',
-    letterSpacing: 2,
-  },
-  googleButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 16,
-    borderRadius: 16,
-    backgroundColor: 'rgba(255,255,255,0.03)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
-  },
-  googleButtonText: {
-    fontSize: 15,
-    fontFamily: Fonts.headingSemiBold,
-    color: 'rgba(255,255,255,0.8)',
   },
   demoBox: {
     marginTop: 40,

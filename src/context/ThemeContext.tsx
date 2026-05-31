@@ -54,6 +54,12 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
         });
     }, []);
 
+    useEffect(() => {
+        if (Platform.OS === 'web' && typeof document !== 'undefined') {
+            document.documentElement.setAttribute('data-theme', theme);
+        }
+    }, [theme]);
+
     const toggleTheme = () => {
         setTheme(prev => {
             const next: Theme = prev === 'light' ? 'dark' : 'light';

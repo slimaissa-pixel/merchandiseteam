@@ -4,9 +4,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { useRouter } from "expo-router";
 import {
   Animated,
-  Dimensions,
   Platform,
-  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -19,13 +17,12 @@ import {
   StatsService,
 } from "@/services/stats.service";
 
-const { width } = Dimensions.get("window");
 const isWeb = Platform.OS === "web";
 
 export default function ExecutiveKPI({
-  role = "admin", stats, COLOR
+  role = "admin"
 }: {
-  role?: "admin" | "supervisor", stats?: KPIStats | null, COLOR: any
+  role?: "admin" | "supervisor", stats?: KPIStats | null, COLOR?: any
 }) {
   const { theme } = useTheme();
   const isDark = theme === "dark";
@@ -39,6 +36,20 @@ export default function ExecutiveKPI({
   const slideAnim = useRef(new Animated.Value(30)).current;
   const pulseAnim = useRef(new Animated.Value(0.4)).current;
   const hasMounted = useRef(false);
+
+  const router = useRouter();
+
+  const loadData = async () => {
+    setLoading(true);
+    try {
+      const result = await StatsService.getKPIStats(period);
+      setData(result);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     loadData();
@@ -67,20 +78,6 @@ export default function ExecutiveKPI({
     }
   }, [period]);
 
-  const loadData = async () => {
-    setLoading(true);
-    try {
-      const result = await StatsService.getKPIStats(period);
-      setData(result);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const router = useRouter();
-
   return (
     <View style={styles.container}>
       <Animated.View
@@ -91,19 +88,19 @@ export default function ExecutiveKPI({
       >
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
           <View>
-            <Text style={styles.kpiTitle}>
+            <Text style={[styles.kpiTitle, !isDark && { color: '#0F172A', fontFamily: 'Inter', fontSize: 32, fontWeight: '700' }]}>
               {role === "admin" ? "Executive Operations" : "Team Operations"}
             </Text>
             <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
               <Animated.View style={[styles.liveDot, { opacity: pulseAnim }]} />
-              <Text style={styles.kpiSubtitle}>
+              <Text style={[styles.kpiSubtitle, !isDark && { color: '#64748B', fontFamily: 'Inter' }]}>
                 Real-time AI Field Force Intelligence
               </Text>
             </View>
           </View>
         </View>
 
-        <View style={styles.periodToggle}>
+        <View style={[styles.periodToggle, !isDark && { backgroundColor: '#FFFFFF', borderColor: '#E2E8F0' }]}>
           {(["today", "week", "month"] as const).map((p) => (
             <TouchableOpacity
               key={p}
@@ -111,12 +108,15 @@ export default function ExecutiveKPI({
               style={[
                 styles.pillBtn,
                 period === p && styles.pillBtnActive,
+                period === p && !isDark && { backgroundColor: '#EFF6FF', borderColor: '#3B82F6' }
               ]}
             >
               <Text
                 style={[
                   styles.pillTxt,
                   period === p && styles.pillTxtActive,
+                  !isDark && { color: '#64748B', fontFamily: 'Inter', fontWeight: '500' },
+                  period === p && !isDark && { color: '#3B82F6', fontWeight: '600' }
                 ]}
               >
                 {p.charAt(0).toUpperCase() + p.slice(1)}
@@ -138,6 +138,7 @@ export default function ExecutiveKPI({
             trend={data?.trends ? `${data.trends.active_merchandisers > 0 ? '+' : ''}${data.trends.active_merchandisers}` : "+0"}
             trendUp={(data?.trends?.active_merchandisers ?? 0) >= 0}
             loading={loading}
+            isDark={isDark}
             onPress={() => router.push(role === 'admin' ? '/admin/users' : '/supervisor/team')}
           />
 
@@ -150,6 +151,7 @@ export default function ExecutiveKPI({
             trend={data?.trends ? `${data.trends.stock_alerts > 0 ? '+' : ''}${data.trends.stock_alerts}` : "+0"}
             trendUp={(data?.trends?.stock_alerts ?? 0) <= 0}
             loading={loading}
+            isDark={isDark}
             onPress={() => router.push('/admin/before-after')}
           />
 
@@ -162,6 +164,7 @@ export default function ExecutiveKPI({
             trend={data?.trends ? `${data.trends.anomalies > 0 ? '+' : ''}${data.trends.anomalies}` : "+0"}
             trendUp={(data?.trends?.anomalies ?? 0) <= 0}
             loading={loading}
+            isDark={isDark}
             onPress={() => router.push('/admin/before-after')}
           />
 
@@ -176,6 +179,7 @@ export default function ExecutiveKPI({
             trendUp={(data?.trends?.visit_completion ?? 0) >= 0}
             loading={loading}
             showProgress
+            isDark={isDark}
             onPress={() => router.push(role === 'admin' ? '/admin/visits' : '/supervisor/dashboard')}
           />
         </View>
@@ -184,7 +188,7 @@ export default function ExecutiveKPI({
   );
 }
 
-const HoverMetricCard = ({ title, value, suffix = '', icon, iconColor, subtext, trend, trendUp, loading, showProgress, onPress }: any) => {
+const HoverMetricCard = ({ title, value, suffix = '', icon, iconColor, subtext, trend, trendUp, loading, showProgress, onPress, isDark }: any) => {
   const scale = useRef(new Animated.Value(1)).current;
   const glow = useRef(new Animated.Value(0)).current;
 
@@ -210,44 +214,58 @@ const HoverMetricCard = ({ title, value, suffix = '', icon, iconColor, subtext, 
         <Animated.View style={[
           styles.metricCard,
           {
-            borderColor: glow.interpolate({ inputRange: [0, 1], outputRange: ['#27272a', iconColor + '60'] }),
+            backgroundColor: isDark ? '#121214' : '#FFFFFF',
+            borderColor: isDark 
+              ? glow.interpolate({ inputRange: [0, 1], outputRange: ['#27272a', iconColor + '60'] })
+              : '#E2E8F0',
             transform: [{ scale }],
-            shadowColor: iconColor,
-            shadowOffset: { width: 0, height: glow.interpolate({ inputRange: [0, 1], outputRange: [4, 12] }) as any },
-            shadowOpacity: glow.interpolate({ inputRange: [0, 1], outputRange: [0, 0.3] }) as any,
-            shadowRadius: glow.interpolate({ inputRange: [0, 1], outputRange: [10, 24] }) as any
+            shadowColor: isDark ? iconColor : 'rgba(0,0,0,1)',
+            shadowOffset: isDark
+              ? { width: 0, height: glow.interpolate({ inputRange: [0, 1], outputRange: [4, 12] }) as any }
+              : { width: 0, height: 2 },
+            shadowOpacity: isDark 
+              ? glow.interpolate({ inputRange: [0, 1], outputRange: [0, 0.3] }) as any
+              : 0.05,
+            shadowRadius: isDark
+              ? glow.interpolate({ inputRange: [0, 1], outputRange: [10, 24] }) as any
+              : 8,
+            borderRadius: isDark ? 20 : 16,
+            padding: 24,
+            ...(!isDark && Platform.OS === 'web' ? { boxShadow: '0 2px 8px rgba(0,0,0,0.05)' } : {})
           }
         ]}>
-          <LinearGradient
-            colors={['rgba(255,255,255,0.03)', 'transparent']}
-            style={StyleSheet.absoluteFillObject}
-          />
+          {isDark && (
+            <LinearGradient
+              colors={['rgba(255,255,255,0.03)', 'transparent']}
+              style={StyleSheet.absoluteFillObject}
+            />
+          )}
           
           <View style={styles.cardHeader}>
             <View style={styles.cardTitleRow}>
               <View style={[styles.iconBox, { backgroundColor: iconColor + '15' }]}>
-                <Ionicons name={icon} size={18} color={iconColor} />
+                <Ionicons name={icon as any} size={18} color={iconColor} />
               </View>
-              <Text style={styles.cardTitleTxt}>{title}</Text>
+              <Text style={[styles.cardTitleTxt, !isDark && { color: '#0F172A', fontFamily: 'Inter', fontWeight: '500' }]}>{title}</Text>
             </View>
             {trend && (
               <View style={[styles.trendBadge, { backgroundColor: trendUp ? '#10b98120' : '#ef444420' }]}>
-                <Ionicons name={trendUp ? "trending-up" : "trending-down"} size={12} color={trendUp ? "#10b981" : "#ef4444"} />
+                <Ionicons name={(trendUp ? "trending-up" : "trending-down") as any} size={12} color={trendUp ? "#10b981" : "#ef4444"} />
                 <Text style={[styles.trendTxt, { color: trendUp ? "#10b981" : "#ef4444" }]}>{trend}</Text>
               </View>
             )}
           </View>
 
           {loading ? (
-            <SkeletonPulse width={100} height={40} color="#ffffff10" style={{ borderRadius: 8, marginBottom: 8 }} />
+            <SkeletonPulse width={100} height={40} color={isDark ? "#ffffff10" : "#E2E8F0"} style={{ borderRadius: 8, marginBottom: 8 }} />
           ) : (
-            <AnimatedNumber value={value} suffix={suffix} style={styles.metricValue} />
+            <AnimatedNumber value={value} suffix={suffix} style={[styles.metricValue, !isDark && { color: '#0F172A', fontFamily: 'Inter', fontWeight: '700', fontSize: 36 }]} />
           )}
 
-          <Text style={styles.subtext}>{subtext}</Text>
+          <Text style={[styles.subtext, !isDark && { color: '#64748B', fontFamily: 'Inter' }]}>{subtext}</Text>
           
           {showProgress && !loading && (
-            <AnimatedProgressBar pct={value} color={iconColor} />
+            <AnimatedProgressBar pct={value} color={iconColor} isDark={isDark} />
           )}
         </Animated.View>
       </TouchableOpacity>
@@ -297,13 +315,13 @@ const AnimatedNumber = React.memo(({ value, suffix = "", style }: { value: numbe
   return <Text style={style}>{displayValue}{suffix}</Text>;
 });
 
-const AnimatedProgressBar = ({ pct, color }: { pct: number; color: string }) => {
+const AnimatedProgressBar = ({ pct, color, isDark }: { pct: number; color: string; isDark?: boolean }) => {
   const anim = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     Animated.timing(anim, { toValue: pct > 100 ? 100 : pct, duration: 1200, useNativeDriver: false }).start();
   }, [pct]);
   return (
-    <View style={styles.progressTrack}>
+    <View style={[styles.progressTrack, !isDark && { backgroundColor: '#E2E8F0' }]}>
       <Animated.View
         style={[
           styles.progressFill,
@@ -381,16 +399,9 @@ const styles = StyleSheet.create({
   },
   metricCard: {
     flex: 1,
-    backgroundColor: '#121214',
-    borderRadius: 20,
-    padding: 24,
-    borderWidth: 1,
-    borderColor: '#27272a',
     position: 'relative',
     overflow: 'hidden',
-    ...Platform.select({
-      web: { boxShadow: '0 4px 20px rgba(0,0,0,0.3)' } as any,
-    })
+    borderWidth: 1,
   },
   cardHeader: {
     flexDirection: "row",

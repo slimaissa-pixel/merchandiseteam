@@ -6,7 +6,7 @@ class NotificationBase(BaseModel):
     title: str
     message: str
     type: str  # info, success, warning, alert
-    icon: str
+    icon: Optional[str] = None
     action_link: Optional[str] = None
 
 class NotificationCreate(NotificationBase):

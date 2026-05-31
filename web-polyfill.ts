@@ -23,6 +23,74 @@ if (Platform.OS === 'web') {
         -ms-overflow-style: none; /* IE and Edge */
         scrollbar-width: none; /* Firefox */
       }
+      
+      /* ---- GLOBAL FORM INPUT & AUTOFILL THEME FIXES ---- */
+      /* Dark Theme */
+      :root[data-theme="dark"] input, 
+      :root[data-theme="dark"] textarea, 
+      :root[data-theme="dark"] select,
+      :root[data-theme="dark"] [role="textbox"],
+      :root[data-theme="dark"] [role="combobox"] {
+        color: #fafafa !important;
+        background-color: transparent;
+      }
+      :root[data-theme="dark"] input::placeholder, 
+      :root[data-theme="dark"] textarea::placeholder {
+        color: rgba(255,255,255,0.42) !important;
+        opacity: 1 !important;
+      }
+      :root[data-theme="dark"] input:-webkit-autofill,
+      :root[data-theme="dark"] input:-webkit-autofill:hover, 
+      :root[data-theme="dark"] input:-webkit-autofill:focus, 
+      :root[data-theme="dark"] input:-webkit-autofill:active {
+        -webkit-text-fill-color: #fafafa !important;
+        -webkit-box-shadow: 0 0 0 30px #111113 inset !important;
+        box-shadow: 0 0 0 30px #111113 inset !important;
+        transition: background-color 5000s ease-in-out 0s !important;
+        caret-color: #fafafa !important;
+      }
+      
+      /* Light Theme */
+      :root[data-theme="light"] input, 
+      :root[data-theme="light"] textarea, 
+      :root[data-theme="light"] select,
+      :root[data-theme="light"] [role="textbox"],
+      :root[data-theme="light"] [role="combobox"] {
+        color: #09090b !important;
+      }
+      :root[data-theme="light"] input::placeholder, 
+      :root[data-theme="light"] textarea::placeholder {
+        color: #64748b !important;
+        opacity: 1 !important;
+      }
+      :root[data-theme="light"] input:-webkit-autofill,
+      :root[data-theme="light"] input:-webkit-autofill:hover, 
+      :root[data-theme="light"] input:-webkit-autofill:focus, 
+      :root[data-theme="light"] input:-webkit-autofill:active {
+        -webkit-text-fill-color: #09090b !important;
+        -webkit-box-shadow: 0 0 0 30px #f1f5f9 inset !important;
+        box-shadow: 0 0 0 30px #f1f5f9 inset !important;
+        transition: background-color 5000s ease-in-out 0s !important;
+        caret-color: #09090b !important;
+      }
+      
+      /* Common Focus/Disabled */
+      input:focus, textarea:focus, select:focus, [role="textbox"]:focus {
+        outline: none !important;
+        border-color: #3b82f6 !important;
+      }
+      
+      :root[data-theme="dark"] input:disabled, 
+      :root[data-theme="dark"] textarea:disabled,
+      :root[data-theme="dark"] select:disabled {
+        color: rgba(255,255,255,0.3) !important;
+      }
+      
+      :root[data-theme="light"] input:disabled, 
+      :root[data-theme="light"] textarea:disabled,
+      :root[data-theme="light"] select:disabled {
+        color: rgba(0,0,0,0.3) !important;
+      }
     `;
     document.head.appendChild(style);
   }

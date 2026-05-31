@@ -19,16 +19,16 @@ import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
 import { Fonts } from '@/hooks/useFonts';
 
-const SIDEBAR_WIDTH = 256;
+const SIDEBAR_WIDTH = 260;
 const COLLAPSED_WIDTH = 70;
 
 let globalIsCollapsed = true;
 
 const ADMIN_LINKS = [
     { icon: 'grid-outline',          label: 'Dashboard',               route: '/admin/dashboard',        group: 'Menu' },
-    { icon: 'cube-outline',          label: 'Products',               route: '/admin/articles',         group: 'Menu' },
-    { icon: 'people-outline',        label: 'Team Management',        route: '/admin/users',            group: 'Menu' },
-    { icon: 'storefront-outline',    label: 'Stores (GMS)',            route: '/admin/gms',              group: 'Menu' },
+    { icon: 'people-outline',        label: 'Team Management',         route: '/admin/users',            group: 'Menu' },
+    { icon: 'cube-outline',          label: 'Products',                route: '/admin/articles',         group: 'Menu' },
+    { icon: 'storefront-outline',    label: 'Stores',                  route: '/admin/gms',              group: 'Menu' },
     { icon: 'location-outline',      label: 'Visits Tracking',         route: '/admin/visits',           group: 'Menu' },
     { icon: 'document-text-outline', label: 'Documents',               route: '/admin/documents',        group: 'Menu' },
     { icon: 'bar-chart-outline',     label: 'Reporting',               route: '/admin/reporting',        group: 'Menu' },
@@ -39,16 +39,17 @@ const ADMIN_LINKS = [
 
 const GROUPS = ['Menu']; // Single group for the simple list
 
-// A single animated nav item that responds to hover
 const NavItem = React.memo(function NavItem({ link, isActive, onPress, colors, isDark, isCollapsed }: any) {
     const hoverAnim = useRef(new Animated.Value(0)).current;
 
     const handleHoverIn = () => { Animated.timing(hoverAnim, { toValue: 1, duration: 160, useNativeDriver: false }).start(); };
     const handleHoverOut = () => { Animated.timing(hoverAnim, { toValue: 0, duration: 160, useNativeDriver: false }).start(); };
 
-    const hoverBg = isDark ? '#ffffff0d' : '#00000008';
-    const activeBg = isDark ? '#ffffff14' : '#00000010';
+    const hoverBg = isDark ? '#ffffff0d' : 'rgba(59,130,246,0.08)';
+    const activeBg = isDark ? '#ffffff14' : 'rgba(59,130,246,0.15)';
     const bgColor = isActive ? activeBg : hoverAnim.interpolate({ inputRange: [0, 1], outputRange: ['transparent', hoverBg] });
+
+    const itemColor = isDark ? (isActive ? colors.primary : colors.textMuted) : (isActive ? '#FFFFFF' : '#94A3B8');
 
     return (
         <Pressable
@@ -61,11 +62,11 @@ const NavItem = React.memo(function NavItem({ link, isActive, onPress, colors, i
         >
             <Animated.View 
                 {...(Platform.OS === 'web' && isCollapsed ? { title: link.label } as any : {})}
-                style={[navSt.item, { backgroundColor: bgColor, justifyContent: isCollapsed ? 'center' : 'flex-start' }]}
+                style={[navSt.item, { backgroundColor: bgColor, justifyContent: isCollapsed ? 'center' : 'flex-start', borderLeftWidth: isActive && !isDark ? 4 : 0, borderLeftColor: isActive && !isDark ? '#3B82F6' : 'transparent', paddingLeft: isActive && !isDark ? 12 : 16 }]}
             >
-                {isActive && <View style={[navSt.pill, { backgroundColor: colors.primary }]} />}
-                <Ionicons name={link.icon as any} size={isCollapsed ? 22 : 18} color={isActive ? colors.primary : colors.textMuted} style={!isCollapsed && { marginRight: 12 }} />
-                {!isCollapsed && <Text style={[navSt.label, { color: isActive ? colors.primary : colors.textMuted, fontWeight: isActive ? '700' : '500' }]} numberOfLines={1}>{link.label}</Text>}
+                {isActive && isDark && <View style={[navSt.pill, { backgroundColor: colors.primary }]} />}
+                <Ionicons name={link.icon as any} size={isCollapsed ? 22 : 18} color={itemColor} style={!isCollapsed && { marginRight: 12 }} />
+                {!isCollapsed && <Text style={[navSt.label, { color: itemColor, fontWeight: isActive ? '700' : '500' }]} numberOfLines={1}>{link.label}</Text>}
             </Animated.View>
         </Pressable>
     );
@@ -81,9 +82,8 @@ function BaseWebLayout({ children, title, links }: { children: React.ReactNode; 
     const router = useRouter();
     const pathname = usePathname();
     const { user, signOut } = useAuth();
-    const { theme } = useTheme();
+    const { theme, toggleTheme } = useTheme();
     const [isCollapsed, setIsCollapsed] = React.useState(globalIsCollapsed);
-    const [searchQuery, setSearchQuery] = React.useState('');
     const sidebarWidth = useRef(new Animated.Value(globalIsCollapsed ? COLLAPSED_WIDTH : SIDEBAR_WIDTH)).current;
     const logoHoverAnim = useRef(new Animated.Value(0)).current;
 
@@ -103,10 +103,10 @@ function BaseWebLayout({ children, title, links }: { children: React.ReactNode; 
     const isDark = theme === 'dark';
     const colors = getColors(theme);
     const logoSource = isDark ? require('@/assets/images/dark.png') : require('@/assets/images/logo-light.png');
-    const sidebarBg = isDark ? '#0f0f12' : '#ffffff';
-    const pageBg = isDark ? '#09090b' : '#f8f9fa';
-    const border = isDark ? '#1e1e24' : '#e5e7eb';
-    const groupLabel = isDark ? '#52525b' : '#9ca3af';
+    const sidebarBg = isDark ? '#0f0f12' : '#0F172A';
+    const pageBg = isDark ? '#09090b' : '#F8FAFC';
+    const border = isDark ? '#1e1e24' : 'rgba(255,255,255,0.08)';
+    const groupLabel = isDark ? '#52525b' : '#64748B';
 
     return (
         <View style={{ flex: 1, flexDirection: 'row', backgroundColor: isDark ? undefined : pageBg, backgroundImage: isDark ? 'linear-gradient(135deg, #09090b 0%, #18181b 100%)' : undefined, height: '100vh' } as any}>
@@ -127,37 +127,21 @@ function BaseWebLayout({ children, title, links }: { children: React.ReactNode; 
                     </Pressable>
                     {!isCollapsed && (
                         <View>
-                            <Text style={[sidebarSt.brandName, { color: colors.text, fontSize: 16 }]}>MerchAdmin</Text>
-                            <Text style={{ fontSize: 9, color: colors.textMuted, fontWeight: '700', marginTop: -2, letterSpacing: 0.5 }}>MANAGEMENT SYSTEM</Text>
+                            <Text style={[sidebarSt.brandName, { color: isDark ? colors.text : '#FFFFFF', fontSize: 16 }]}>MerchAdmin</Text>
+                            <Text style={{ fontSize: 9, color: isDark ? colors.textMuted : '#94A3B8', fontWeight: '700', marginTop: -2, letterSpacing: 0.5 }}>MANAGEMENT SYSTEM</Text>
                         </View>
                     )}
                     {!isCollapsed && (
                         <TouchableOpacity onPress={toggleCollapse} style={sidebarSt.themeBtn}>
-                            <Ionicons name="chevron-back-outline" size={18} color={colors.textMuted} />
+                            <Ionicons name="chevron-back-outline" size={18} color={isDark ? colors.textMuted : '#94A3B8'} />
                         </TouchableOpacity>
                     )}
                 </View>
 
-                {!isCollapsed && (
-                    <View style={[sidebarSt.searchBar, { backgroundColor: isDark ? '#18181b' : '#f3f4f6', borderColor: border }]}>
-                        <Ionicons name="search" size={14} color={colors.textMuted} />
-                        <TextInput
-                            style={[sidebarSt.searchHint, { color: colors.text, outlineStyle: 'none' } as any]}
-                            placeholder="Quick search..."
-                            placeholderTextColor={colors.textMuted}
-                            value={searchQuery}
-                            onChangeText={setSearchQuery}
-                        />
-                    </View>
-                )}
 
                 <ScrollView showsVerticalScrollIndicator={false} style={{ flex: 1, paddingHorizontal: 12 }}>
                     {GROUPS.map(group => {
-                        const groupLinks = links.filter(l => 
-                            l.group === group && 
-                            (l.label.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                             l.group.toLowerCase().includes(searchQuery.toLowerCase()))
-                        );
+                        const groupLinks = links.filter(l => l.group === group);
                         if (groupLinks.length === 0) return null;
                         return (
                             <View key={group} style={{ marginBottom: 20 }}>
@@ -182,8 +166,8 @@ function BaseWebLayout({ children, title, links }: { children: React.ReactNode; 
                         {!isCollapsed && (
                             <>
                                 <View style={{ flex: 1 }}>
-                                    <Text style={[sidebarSt.userName, { color: colors.text }]} numberOfLines={1}>{user?.firstName} {user?.lastName}</Text>
-                                    <Text style={[sidebarSt.userEmail, { color: colors.textMuted }]} numberOfLines={1}>{user?.role?.toUpperCase() || 'USER'}</Text>
+                                    <Text style={[sidebarSt.userName, { color: isDark ? colors.text : '#FFFFFF' }]} numberOfLines={1}>{user?.firstName} {user?.lastName}</Text>
+                                    <Text style={[sidebarSt.userEmail, { color: isDark ? colors.textMuted : '#94A3B8' }]} numberOfLines={1}>{user?.role?.toUpperCase() || 'USER'}</Text>
                                 </View>
                                 <TouchableOpacity onPress={signOut} style={sidebarSt.signOutBtn}>
                                     <Ionicons name="log-out-outline" size={18} color={colors.danger} />
@@ -194,16 +178,55 @@ function BaseWebLayout({ children, title, links }: { children: React.ReactNode; 
                 </Pressable>
             </Animated.View>
 
-            <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 40, flexGrow: 1 }} showsVerticalScrollIndicator={false}>
-                <View style={{ width: '100%', flex: 1 }}>
-                    {title ? (
-                        <View style={{ marginBottom: 32 }}>
-                            <Text style={{ fontSize: 24, fontWeight: '800', color: colors.text }}>{title}</Text>
+            <View style={{ flex: 1, backgroundColor: isDark ? undefined : pageBg, backgroundImage: isDark ? 'linear-gradient(135deg, #09090b 0%, #18181b 100%)' : undefined } as any}>
+                {!isDark && (
+                    <View style={headerSt.container}>
+                        <View style={headerSt.searchBox}>
+                            <Ionicons name="search" size={18} color="#94A3B8" />
+                            <TextInput
+                                style={headerSt.searchInput}
+                                placeholder="Search across enterprise..."
+                                placeholderTextColor="#94A3B8"
+                            />
                         </View>
-                    ) : null}
-                    {children}
-                </View>
-            </ScrollView>
+                        <View style={headerSt.headerActions}>
+                            <TouchableOpacity style={headerSt.iconBtn} onPress={toggleTheme}>
+                                <Ionicons name="moon-outline" size={20} color="#64748B" />
+                            </TouchableOpacity>
+                            <TouchableOpacity style={headerSt.iconBtn}>
+                                <Ionicons name="notifications-outline" size={20} color="#64748B" />
+                            </TouchableOpacity>
+                            <View style={headerSt.profileDivider} />
+                            <TouchableOpacity style={headerSt.profileBtn} onPress={() => router.push('/admin/profile')}>
+                                <View style={headerSt.profileAvatar}>
+                                    <Text style={headerSt.profileAvatarTxt}>{user?.firstName?.[0] ?? 'A'}</Text>
+                                </View>
+                                <View style={headerSt.profileInfo}>
+                                    <Text style={headerSt.profileName}>{user?.firstName} {user?.lastName}</Text>
+                                    <Text style={headerSt.profileRole}>{user?.role?.toUpperCase() || 'USER'}</Text>
+                                </View>
+                                <Ionicons name="chevron-down" size={16} color="#64748B" />
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                )}
+                
+                <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: isDark ? 40 : 32, flexGrow: 1 }} showsVerticalScrollIndicator={false}>
+                    <View style={{ width: '100%', flex: 1 }}>
+                        {title ? (
+                            <View style={{ marginBottom: 32, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                                <Text style={{ fontSize: isDark ? 24 : 32, fontWeight: isDark ? '800' : '700', color: isDark ? colors.text : '#0F172A', fontFamily: isDark ? undefined : 'Inter' }}>{title}</Text>
+                                {isDark && (
+                                    <TouchableOpacity style={{ padding: 8, backgroundColor: isDark ? '#18181b' : '#FFFFFF', borderRadius: 8 }} onPress={toggleTheme}>
+                                        <Ionicons name="sunny-outline" size={20} color={colors.text} />
+                                    </TouchableOpacity>
+                                )}
+                            </View>
+                        ) : null}
+                        {children}
+                    </View>
+                </ScrollView>
+            </View>
         </View>
     );
 }
@@ -237,4 +260,20 @@ const sidebarSt = StyleSheet.create({
     userEmail: { fontSize: 11, fontWeight: '600', opacity: 0.6 },
     signOutBtn: { padding: 8, borderRadius: 10, backgroundColor: '#ef444410' },
 });
+
+const headerSt = StyleSheet.create({
+    container: { height: 80, backgroundColor: '#FFFFFF', borderBottomWidth: 1, borderBottomColor: '#E2E8F0', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 32 },
+    searchBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F8FAFC', paddingHorizontal: 16, height: 44, borderRadius: 12, borderWidth: 1, borderColor: '#E2E8F0', flex: 1, maxWidth: 400, gap: 12 },
+    searchInput: { flex: 1, fontSize: 14, color: '#0F172A', fontFamily: 'Inter', outlineStyle: 'none' } as any,
+    headerActions: { flexDirection: 'row', alignItems: 'center', gap: 16 },
+    iconBtn: { width: 44, height: 44, borderRadius: 12, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F8FAFC', borderWidth: 1, borderColor: '#E2E8F0' },
+    profileDivider: { width: 1, height: 24, backgroundColor: '#E2E8F0', marginHorizontal: 8 },
+    profileBtn: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 6, paddingHorizontal: 12, borderRadius: 12 },
+    profileAvatar: { width: 40, height: 40, borderRadius: 12, backgroundColor: '#EFF6FF', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#DBEAFE' },
+    profileAvatarTxt: { color: '#3B82F6', fontSize: 16, fontWeight: '700' },
+    profileInfo: { marginRight: 8 },
+    profileName: { fontSize: 14, fontWeight: '600', color: '#0F172A', fontFamily: 'Inter' },
+    profileRole: { fontSize: 12, color: '#64748B', fontFamily: 'Inter' },
+});
+
 

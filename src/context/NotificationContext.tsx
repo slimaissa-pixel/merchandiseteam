@@ -27,14 +27,19 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     const [unreadCount, setUnreadCount] = useState(0);
     const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+    const isFetchingRef = useRef(false);
+
     const fetchCount = useCallback(async () => {
-        if (!user) return;
+        if (!user || isFetchingRef.current) return;
+        isFetchingRef.current = true;
         try {
             const notifications = await NotificationService.getNotifications();
             const count = notifications.filter(n => !n.is_read).length;
             setUnreadCount(count);
         } catch {
             // silent fail — keep existing count
+        } finally {
+            isFetchingRef.current = false;
         }
     }, [user]);
 

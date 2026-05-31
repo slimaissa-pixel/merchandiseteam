@@ -20,14 +20,14 @@ interface WebLoginProps {
     email: string; setEmail: (t: string) => void;
     password: string; setPassword: (t: string) => void;
     rememberMe: boolean; setRememberMe: (v: boolean) => void;
-    handleLogin: () => void; handleGoogleSignIn: () => void; isLoading: boolean;
+    handleLogin: () => void; isLoading: boolean;
     handleAutoLogin: (type: 'supervisor' | 'merchandiser') => void;
 }
 
 export default function WebLogin({
     email, setEmail, password, setPassword,
     rememberMe, setRememberMe,
-    handleLogin, handleGoogleSignIn, isLoading,
+    handleLogin, isLoading,
     handleAutoLogin
 }: WebLoginProps) {
     const router = useRouter();
@@ -68,14 +68,6 @@ export default function WebLogin({
         .switch-lbl { font-family: 'Inter', sans-serif; font-size: 14px; color: rgba(255,255,255,0.6); cursor: pointer; user-select: none; }
         .link-text { color: ${COLOR.gold}; cursor: pointer; text-decoration: none; font-weight: 600; transition: color 0.2s; font-family: 'Inter', sans-serif; font-size: 14px; }
         .link-text:hover { color: ${COLOR.goldLight}; }
-        
-        .google-btn {
-            display: flex; align-items: center; justify-content: center; gap: 12px; padding: 16px; border-radius: 14px;
-            background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08);
-            cursor: pointer; transition: background 0.2s; font-family: 'Inter', sans-serif; font-weight: 600;
-            color: #fff; font-size: 15px; width: 100%;
-        }
-        .google-btn:hover { background: rgba(255,255,255,0.08); }
         
         .module-card {
             background: linear-gradient(145deg,rgba(255,255,255,0.03),rgba(255,255,255,0.01));
@@ -198,20 +190,6 @@ export default function WebLogin({
 
                     <button className="cta-btn-primary" onClick={handleLogin} disabled={isLoading}>
                         {isLoading ? <ActivityIndicator color="#000" /> : 'Authenticate System'}
-                    </button>
-
-                    <div style={S.divider}>
-                        <div style={S.line} />
-                        <div style={S.divText}>OR</div>
-                        <div style={S.line} />
-                    </div>
-
-                    <button className="google-btn" onClick={handleGoogleSignIn} disabled={isLoading}>
-                        <img src={(() => {
-                            const a = require('@/assets/images/google_logo.png');
-                            return typeof a === 'string' ? a : (a.uri || a.default || '');
-                        })()} style={{ width: 18, height: 18 }} alt="Google" />
-                        Continue with Enterprise SSO
                     </button>
 
                     <div style={{ textAlign: 'center', marginTop: 32 }}>

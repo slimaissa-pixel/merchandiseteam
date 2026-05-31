@@ -17,9 +17,11 @@ export interface Report {
     user_id: number;
     merchandiser_name: string;
     gms_id?: number;
+    gms?: { id: number; name: string; city: string; address: string };
     visit_id?: number;
     workday_id?: number;
     created_at: string;
+    report_metadata?: any;
 }
 
 export interface ReportSubmission {

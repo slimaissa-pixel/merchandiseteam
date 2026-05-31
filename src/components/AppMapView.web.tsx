@@ -81,14 +81,10 @@ const AppMapView = forwardRef(function AppMapView({
   const map       = useRef<maplibregl.Map|null>(null);
   const markers   = useRef<Record<string,maplibregl.Marker>>({});
   const pickMarker= useRef<maplibregl.Marker|null>(null);
-  const [activeStyle, setActiveStyle] = useState(
-    mapType==='darkMatter'?'Dark Matter':mapType==='voyager'?'Default (Carto)':mapType==='satellite'?'Satellite':'Dark Matter'
-  );
+  const [activeStyle, setActiveStyle] = useState('OpenStreetMap 3D');
 
   useEffect(() => {
-    setActiveStyle(
-      mapType==='darkMatter'?'Dark Matter':mapType==='voyager'?'Default (Carto)':mapType==='satellite'?'Satellite':'Dark Matter'
-    );
+    setActiveStyle('OpenStreetMap 3D');
   }, [mapType]);
 
   useImperativeHandle(ref,()=>({
@@ -208,8 +204,8 @@ const AppMapView = forwardRef(function AppMapView({
     <View style={[styles.container,style]}>
       <div ref={container} style={{width:'100%',height:'100%',position:'absolute'}} />
 
-      {/* Style selector */}
-      {showStyleSelector&&(
+      {/* Style selector (Disabled per user request) */}
+      {false && showStyleSelector&&(
         <div className="map-style-sel">
           <select value={activeStyle} onChange={e=>setActiveStyle(e.target.value)}
             style={{background:'rgba(10,15,25,.88)',backdropFilter:'blur(10px)',border:'1px solid rgba(255,255,255,.12)',color:'#e2e8f0',padding:'6px 28px 6px 10px',borderRadius:'10px',fontSize:'12px',fontWeight:600,cursor:'pointer',outline:'none'} as any}>

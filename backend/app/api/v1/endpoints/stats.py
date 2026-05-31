@@ -100,22 +100,130 @@ def get_merchandiser_stats(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    # Stores assigned to this merchandiser
-    stores_count = db.query(GMSAssignment).filter(GMSAssignment.user_id == current_user.id).count()
+    from datetime import datetime, timezone, timedelta
+    now = datetime.now(timezone.utc)
+    today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    week_start = today_start - timedelta(days=today_start.weekday())
+    month_start = today_start.replace(day=1)
+
+    assigned_stores = db.query(GMSAssignment).filter(GMSAssignment.user_id == current_user.id).count()
+    if assigned_stores == 0:
+        assigned_stores = 1
+
+    # Visits Stats
+    visits_today = db.query(Visit).join(Workday).filter(
+        Workday.user_id == current_user.id, Visit.status == 'completed', Visit.start_time >= today_start
+    ).count()
     
-    # Reports done by this merchandiser
-    reports_count = db.query(Report).filter(Report.user_id == current_user.id).count()
+    visits_week = db.query(Visit).join(Workday).filter(
+        Workday.user_id == current_user.id, Visit.status == 'completed', Visit.start_time >= week_start
+    ).count()
+
+    visits_month = db.query(Visit).join(Workday).filter(
+        Workday.user_id == current_user.id, Visit.status == 'completed', Visit.start_time >= month_start
+    ).count()
+
+    completed_pct = min(100, int((visits_today / assigned_stores) * 100))
+
+    # Avg duration
+    completed_visits_month = db.query(Visit).join(Workday).filter(
+        Workday.user_id == current_user.id, Visit.status == 'completed', Visit.start_time >= month_start
+    ).all()
     
-    # Target hits (percentage of reports approved)
-    total_reports = db.query(Report).filter(Report.user_id == current_user.id).count()
-    approved_reports = db.query(Report).filter(Report.user_id == current_user.id, Report.status == "approved").count()
+    total_seconds = 0
+    valid_visits = 0
+    for v in completed_visits_month:
+        if v.start_time and v.end_time:
+            dur = (v.end_time - v.start_time).total_seconds()
+            if dur > 0:
+                total_seconds += dur
+                valid_visits += 1
+                
+    avg_duration_mins = int((total_seconds / valid_visits) / 60) if valid_visits > 0 else 0
+
+    # Reports Stats
+    all_reports = db.query(Report).filter(Report.user_id == current_user.id).all()
+    total_reports = len(all_reports)
+    approved = sum(1 for r in all_reports if r.status == 'approved')
+    pending = sum(1 for r in all_reports if r.status == 'pending')
+    rejected = sum(1 for r in all_reports if r.status == 'rejected')
     
-    target_hit = round((approved_reports / total_reports * 100), 1) if total_reports > 0 else 0
+    before_after = sum(1 for r in all_reports if r.type == 'Before/After')
+    anomalies = sum(1 for r in all_reports if r.type == 'anomaly')
+    ruptures = sum(1 for r in all_reports if r.type == 'stock-issue')
+    product_facing = sum(1 for r in all_reports if r.type == 'facing')
+
+    ai_detections = db.query(Event).join(Visit).join(Workday).filter(
+        Workday.user_id == current_user.id, Event.type == 'AI Detection'
+    ).count()
+
+    # Productivity
+    score = min(100, int(((approved / total_reports) if total_reports > 0 else 1) * 100))
     
+    # Working hours
+    workdays_month = db.query(Workday).filter(
+        Workday.user_id == current_user.id, Workday.start_time >= month_start
+    ).all()
+    
+    work_seconds = 0
+    for w in workdays_month:
+        end = w.end_time or now
+        if w.start_time:
+            work_seconds += (end - w.start_time).total_seconds()
+            
+    working_hours_month = int(work_seconds / 3600)
+
+    # Chart Data (Weekly Activity)
+    weekly_activity = []
+    days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+    for i in range(7):
+        day_start = week_start + timedelta(days=i)
+        day_end = day_start + timedelta(days=1)
+        day_visits = db.query(Visit).join(Workday).filter(
+            Workday.user_id == current_user.id, Visit.status == 'completed',
+            Visit.start_time >= day_start, Visit.start_time < day_end
+        ).count()
+        weekly_activity.append({"day": days[i], "visits": day_visits})
+
+    # Report Distribution
+    report_distribution = [
+        {"type": "Before/After", "count": before_after},
+        {"type": "Anomaly", "count": anomalies},
+        {"type": "Stock Issue", "count": ruptures},
+        {"type": "Facing", "count": product_facing}
+    ]
+
     return {
-        "stores_assigned": stores_count,
-        "reports_done": reports_count,
-        "target_hit": f"{target_hit}%"
+        "visits": {
+            "today": visits_today,
+            "this_week": visits_week,
+            "this_month": visits_month,
+            "completed_pct": completed_pct,
+            "avg_duration_mins": avg_duration_mins,
+            "delayed": 0,  # Placeholder, needs more logic for missed/delayed
+            "missed": 0
+        },
+        "reports": {
+            "total": total_reports,
+            "approved": approved,
+            "pending": pending,
+            "rejected": rejected,
+            "before_after": before_after,
+            "anomalies": anomalies,
+            "ruptures": ruptures,
+            "product_facing": product_facing,
+            "ai_detections": ai_detections
+        },
+        "productivity": {
+            "score": score,
+            "attendance_rate": 100,  # To implement
+            "store_coverage_pct": min(100, int((len(set([v.gms_id for v in completed_visits_month])) / assigned_stores) * 100)),
+            "working_hours_month": working_hours_month
+        },
+        "charts": {
+            "weekly_activity": weekly_activity,
+            "report_distribution": [r for r in report_distribution if r["count"] > 0]
+        }
     }
 
 @router.get("/kpi")

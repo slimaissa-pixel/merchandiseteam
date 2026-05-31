@@ -297,7 +297,7 @@ const getDonutSegments = (COLOR: any) => [
   { role: 'merchandiser', label: 'Merchandiser', color: COLOR.primary },
 ];
 
-const DonutChart = ({ users, COLOR }: { users: any[]; COLOR: any }) => {
+const DonutChart = ({ users, COLOR, isDark = true }: { users: any[]; COLOR: any; isDark?: boolean }) => {
   const circleRef = useRef<any>(null);
   const hoverScale = useRef(new Animated.Value(1)).current;
 
@@ -387,7 +387,7 @@ const DonutChart = ({ users, COLOR }: { users: any[]; COLOR: any }) => {
                 ref={circleRef}
                 cx="80" cy="80" r={radius}
                 fill="transparent"
-                stroke="#0d1117"
+                stroke={isDark ? '#0d1117' : '#FFFFFF'}
                 strokeWidth="22"
                 strokeDasharray={`${circumference} ${circumference}`}
                 strokeDashoffset={circumference}
@@ -398,8 +398,8 @@ const DonutChart = ({ users, COLOR }: { users: any[]; COLOR: any }) => {
           )}
           {/* Centre label */}
           <View style={{ alignItems: 'center', justifyContent: 'center' }}>
-            <Text style={{ color: COLOR.textMuted, fontSize: 11, fontFamily: Fonts.body }}>Total</Text>
-            <Text style={{ color: COLOR.text, fontSize: 22, fontFamily: Fonts.heading }}>{total}</Text>
+            <Text style={{ color: isDark ? COLOR.textMuted : '#64748B', fontSize: 11, fontFamily: Fonts.body }}>Total</Text>
+            <Text style={{ color: isDark ? COLOR.text : '#0F172A', fontSize: 22, fontFamily: Fonts.heading }}>{total}</Text>
           </View>
         </Animated.View>
       </View>
@@ -409,10 +409,10 @@ const DonutChart = ({ users, COLOR }: { users: any[]; COLOR: any }) => {
           <View key={s.role} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
               <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: s.color }} />
-              <Text style={{ color: COLOR.textMuted, fontSize: 13, fontFamily: Fonts.body }}>{s.label}</Text>
+              <Text style={{ color: isDark ? COLOR.textMuted : '#64748B', fontSize: 13, fontFamily: Fonts.body }}>{s.label}</Text>
             </View>
-            <Text style={{ color: COLOR.text, fontSize: 13, fontFamily: Fonts.headingSemiBold }}>
-              {s.count} <Text style={{ color: COLOR.textMuted, fontFamily: Fonts.body }}>({s.pct}%)</Text>
+            <Text style={{ color: isDark ? COLOR.text : '#0F172A', fontSize: 13, fontFamily: Fonts.headingSemiBold }}>
+              {s.count} <Text style={{ color: isDark ? COLOR.textMuted : '#94A3B8', fontFamily: Fonts.body }}>({s.pct}%)</Text>
             </Text>
           </View>
         ))}
@@ -575,20 +575,22 @@ export default function AdminDashboard() {
         {/* ROW 1: Performance Trend & Critical Alerts */}
         <View style={[wSt.midRow, { gap: 20, marginBottom: 20 }]}>
           {/* Performance Trend Chart */}
-          <View style={[wSt.card, { flex: 2, backgroundColor: '#18181b', borderColor: '#27272a', padding: 24 }]}>
+          <View style={[wSt.card, { flex: 2, backgroundColor: isDark ? '#18181b' : '#FFFFFF', borderColor: isDark ? '#27272a' : '#E2E8F0', padding: 24, ...((!isDark && Platform.OS === 'web') ? { boxShadow: '0 2px 8px rgba(0,0,0,0.05)' } : {}) } as any]}>
             <View style={wSt.cardHeader}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <Ionicons name="stats-chart" size={18} color="#a78bfa" />
-                <Text style={[wSt.cardTitle, { color: '#fff' }]}>Performance Trend</Text>
+                <View style={{ width: 32, height: 32, borderRadius: 8, backgroundColor: isDark ? '#a78bfa20' : '#EFF6FF', justifyContent: 'center', alignItems: 'center' }}>
+                  <Ionicons name="stats-chart" size={16} color={isDark ? '#a78bfa' : '#3B82F6'} />
+                </View>
+                <Text style={[wSt.cardTitle, { color: isDark ? '#fff' : '#0F172A', fontFamily: 'Inter', fontWeight: '600' }]}>Performance Trend</Text>
               </View>
-              <View style={[wSt.pillToggle, { backgroundColor: '#0d1117', borderColor: '#27272a' }]}>
+              <View style={[wSt.pillToggle, { backgroundColor: isDark ? '#0d1117' : '#F8FAFC', borderColor: isDark ? '#27272a' : '#E2E8F0' }]}>
                 {(['weekly', 'monthly'] as const).map(p => (
                   <TouchableOpacity
                     key={p}
                     onPress={() => setPeriod(p)}
-                    style={[wSt.pillBtn, period === p && { backgroundColor: '#a78bfa30', borderColor: '#a78bfa50', borderWidth: 1 }]}
+                    style={[wSt.pillBtn, period === p && (isDark ? { backgroundColor: '#a78bfa30', borderColor: '#a78bfa50', borderWidth: 1 } : { backgroundColor: '#EFF6FF', borderColor: '#3B82F6', borderWidth: 1 })]}
                   >
-                    <Text style={[wSt.pillTxt, { color: period === p ? '#d8b4fe' : '#71717a' }]}>
+                    <Text style={[wSt.pillTxt, { color: period === p ? (isDark ? '#d8b4fe' : '#3B82F6') : (isDark ? '#71717a' : '#64748B') }]}>
                       {p === 'weekly' ? 'Weekly' : 'Monthly'}
                     </Text>
                   </TouchableOpacity>
@@ -597,89 +599,74 @@ export default function AdminDashboard() {
             </View>
 
             <View style={{ height: 280, marginTop: 20 }}>
-              <WebPerformanceChart data={chartData} />
+              <WebPerformanceChart data={chartData} isDark={isDark} />
             </View>
           </View>
 
           {/* Right Column: Alerts & Recent */}
           <View style={{ flex: 1, gap: 20 }}>
             {/* Critical Alerts */}
-            <View style={[wSt.card, { flex: 1, backgroundColor: '#18181b', borderColor: '#27272a', padding: 20 }]}>
+            <View style={[wSt.card, { flex: 1, backgroundColor: isDark ? '#18181b' : '#FFFFFF', borderColor: isDark ? '#27272a' : '#E2E8F0', padding: 20, ...((!isDark && Platform.OS === 'web') ? { boxShadow: '0 2px 8px rgba(0,0,0,0.05)' } : {}) } as any]}>
               <View style={[wSt.cardHeader, { marginBottom: 16 }]}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                  <Ionicons name="warning" size={18} color="#ef4444" />
-                  <Text style={[wSt.cardTitle, { color: '#fff' }]}>Critical Alerts</Text>
+                  <View style={{ width: 32, height: 32, borderRadius: 8, backgroundColor: isDark ? '#ef444420' : '#FEF2F2', justifyContent: 'center', alignItems: 'center' }}>
+                    <Ionicons name="warning" size={16} color="#EF4444" />
+                  </View>
+                  <Text style={[wSt.cardTitle, { color: isDark ? '#fff' : '#0F172A', fontFamily: 'Inter', fontWeight: '600' }]}>Critical Alerts</Text>
+                </View>
+                <View style={{ paddingHorizontal: 8, paddingVertical: 3, borderRadius: 20, backgroundColor: isDark ? '#ef444420' : '#FEF2F2' }}>
+                  <Text style={{ fontSize: 11, color: '#EF4444', fontWeight: '700' }}>2 Active</Text>
                 </View>
               </View>
               
               <ScrollView showsVerticalScrollIndicator={false}>
                 {[
-                  { id: 1, type: 'stock', title: 'Out of Stock (Rupture)', desc: 'Coca-Cola Zero at Carrefour Market', time: '10 mins ago', icon: 'cart-outline', color: '#ef4444' },
-                  { id: 2, type: 'gps', title: 'GPS Disabled', desc: 'Ahmed T. (Store 402)', time: '25 mins ago', icon: 'location-outline', color: '#f59e0b' },
-                ].map((alert, i) => (
-                  <TouchableOpacity 
-                    key={alert.id} 
+                  { id: 1, title: 'Out of Stock (Rupture)', desc: 'Coca-Cola Zero at Carrefour Market', time: '10 mins ago', icon: 'cart-outline', color: '#EF4444', lightBg: '#FEF2F2' },
+                  { id: 2, title: 'GPS Disabled', desc: 'Ahmed T. (Store 402)', time: '25 mins ago', icon: 'location-outline', color: '#F59E0B', lightBg: '#FFFBEB' },
+                ].map((alert) => (
+                  <TouchableOpacity
+                    key={alert.id}
                     onPress={() => router.push('/admin/notifications')}
                     style={{
-                      backgroundColor: alert.color + '10',
+                      backgroundColor: isDark ? alert.color + '10' : alert.lightBg,
                       borderWidth: 1,
-                      borderColor: alert.color + '30',
+                      borderColor: isDark ? alert.color + '30' : alert.color + '40',
                       borderLeftWidth: 3,
                       borderLeftColor: alert.color,
                       borderRadius: 12,
-                      padding: 12,
-                      marginBottom: 12,
+                      padding: 14,
+                      marginBottom: 10,
                       flexDirection: 'row',
                       gap: 12,
-                      alignItems: 'center'
+                      alignItems: 'flex-start'
                     } as any}
                   >
-                    <View style={{ width: 32, height: 32, borderRadius: 8, backgroundColor: alert.color + '20', justifyContent: 'center', alignItems: 'center' }}>
+                    <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: isDark ? alert.color + '25' : '#FFFFFF', borderWidth: isDark ? 0 : 1, borderColor: alert.color + '30', justifyContent: 'center', alignItems: 'center', marginTop: 1 }}>
                       <Ionicons name={alert.icon as any} size={16} color={alert.color} />
                     </View>
                     <View style={{ flex: 1 }}>
-                      <Text style={{ color: alert.color, fontSize: 13, fontWeight: '700', marginBottom: 2 }}>{alert.title}</Text>
-                      <Text style={{ color: '#d4d4d8', fontSize: 12 }}>{alert.desc}</Text>
-                      <Text style={{ color: '#71717a', fontSize: 10, marginTop: 4 }}>Reported {alert.time}</Text>
+                      <Text style={{ color: alert.color, fontSize: 13, fontWeight: '700', marginBottom: 3 }}>{alert.title}</Text>
+                      <Text style={{ color: isDark ? '#d4d4d8' : '#475569', fontSize: 12, lineHeight: 17 }}>{alert.desc}</Text>
+                      <Text style={{ color: isDark ? '#71717a' : '#94A3B8', fontSize: 10, marginTop: 5 }}>Reported {alert.time}</Text>
                     </View>
                   </TouchableOpacity>
                 ))}
               </ScrollView>
             </View>
 
-            {/* Latest Activities */}
-            <View style={[wSt.card, { flex: 1, backgroundColor: '#18181b', borderColor: '#27272a', padding: 20 }]}>
-              <View style={[wSt.cardHeader, { marginBottom: 12 }]}>
+            {/* User Distribution */}
+            <View style={[wSt.card, { flex: 1, backgroundColor: isDark ? '#18181b' : '#FFFFFF', borderColor: isDark ? '#27272a' : '#E2E8F0', alignItems: 'center', padding: 24, ...((!isDark && Platform.OS === 'web') ? { boxShadow: '0 2px 8px rgba(0,0,0,0.05)' } : {}) } as any]}>
+              <View style={[wSt.cardHeader, { marginBottom: 16, width: '100%' }]}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                  <Ionicons name="time" size={18} color="#3b82f6" />
-                  <Text style={[wSt.cardTitle, { color: '#fff' }]}>Latest Activities</Text>
+                  <View style={{ width: 32, height: 32, borderRadius: 8, backgroundColor: isDark ? '#f472b620' : '#FDF4FF', justifyContent: 'center', alignItems: 'center' }}>
+                    <Ionicons name="pie-chart" size={16} color={isDark ? '#f472b6' : '#9333EA'} />
+                  </View>
+                  <Text style={[wSt.cardTitle, { color: isDark ? '#fff' : '#0F172A', fontFamily: 'Inter', fontWeight: '600' }]}>User Distribution</Text>
                 </View>
-                <TouchableOpacity onPress={() => router.push('/admin/before-after')}>
-                  <Text style={{ fontSize: 12, color: '#3b82f6', fontWeight: '600' }}>View All</Text>
-                </TouchableOpacity>
               </View>
-              <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
-                {allReports.slice(0, 3).map(r => (
-                  <TouchableOpacity key={r.id} onPress={() => router.push(`/admin/before-after?id=${r.id}`)}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#ffffff10' }}>
-                      <View style={{ width: 32, height: 32, borderRadius: 8, backgroundColor: r.status === 'approved' ? '#10b98120' : r.status === 'rejected' ? '#ef444420' : '#f59e0b20', justifyContent: 'center', alignItems: 'center', marginRight: 12 }}>
-                        <Ionicons
-                          name={r.status === 'approved' ? 'checkmark' : r.status === 'rejected' ? 'close' : 'time'}
-                          size={16}
-                          color={r.status === 'approved' ? '#10b981' : r.status === 'rejected' ? '#ef4444' : '#f59e0b'}
-                        />
-                      </View>
-                      <View style={{ flex: 1 }}>
-                        <Text style={{ color: '#fff', fontSize: 13, fontWeight: '600' }} numberOfLines={1}>{r.name}</Text>
-                        <Text style={{ color: '#a1a1aa', fontSize: 11, marginTop: 2 }}>{r.type} · {getRelativeTime(r.created_at)}</Text>
-                      </View>
-                    </View>
-                  </TouchableOpacity>
-                ))}
-                {!loading && allReports.length === 0 && (
-                  <Text style={{ color: '#71717a', textAlign: 'center', marginTop: 20, fontSize: 12 }}>No recent activities.</Text>
-                )}
-              </ScrollView>
+              <View style={{ width: '100%', maxWidth: 400 }}>
+                <DonutChart users={allUsers} COLOR={COLOR} isDark={isDark} />
+              </View>
             </View>
           </View>
         </View>
@@ -688,12 +675,18 @@ export default function AdminDashboard() {
 
         <View style={[wSt.midRow, { gap: 20, marginBottom: 20 }]}>
           {/* Live Map */}
-          <View style={[wSt.card, { flex: 2, backgroundColor: '#18181b', borderColor: '#27272a', padding: 0, overflow: 'hidden' }]}>
-            <View style={{ padding: 24, borderBottomWidth: 1, borderBottomColor: '#27272a', flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-              <Ionicons name="map" size={18} color="#34d399" />
-              <Text style={[wSt.cardTitle, { color: '#fff', marginBottom: 0 }]}>Live Map (GPS tracking)</Text>
+          <View style={[wSt.card, { flex: 2, backgroundColor: isDark ? '#18181b' : '#FFFFFF', borderColor: isDark ? '#27272a' : '#E2E8F0', padding: 0, overflow: 'hidden', ...((!isDark && Platform.OS === 'web') ? { boxShadow: '0 2px 8px rgba(0,0,0,0.05)' } : {}) } as any]}>
+            <View style={{ padding: 20, paddingHorizontal: 24, borderBottomWidth: 1, borderBottomColor: isDark ? '#27272a' : '#E2E8F0', flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: isDark ? '#18181b' : '#FFFFFF' }}>
+              <View style={{ width: 32, height: 32, borderRadius: 8, backgroundColor: isDark ? '#34d39920' : '#ECFDF5', justifyContent: 'center', alignItems: 'center' }}>
+                <Ionicons name="map" size={16} color={isDark ? '#34d399' : '#10B981'} />
+              </View>
+              <Text style={[wSt.cardTitle, { color: isDark ? '#fff' : '#0F172A', marginBottom: 0, fontFamily: 'Inter', fontWeight: '600' }]}>Live Map (GPS Tracking)</Text>
+              <View style={{ marginLeft: 'auto' as any, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#10B981' }} />
+                <Text style={{ fontSize: 12, color: isDark ? '#71717a' : '#64748B' }}>{allGms.filter((s: any) => s.latitude && s.longitude).length} stores tracked</Text>
+              </View>
             </View>
-            <View style={{ height: 420, backgroundColor: '#0d1117' }}>
+            <View style={{ height: 420, backgroundColor: isDark ? '#0d1117' : '#F8FAFC' }}>
               {Platform.OS === 'web' ? (
                 <AppMapView
                     scrollEnabled={true}
@@ -726,17 +719,44 @@ export default function AdminDashboard() {
             </View>
           </View>
 
-          {/* User Distribution */}
-          <View style={[wSt.card, { flex: 1, backgroundColor: '#18181b', borderColor: '#27272a', alignItems: 'center', padding: 24 }]}>
-            <View style={[wSt.cardHeader, { marginBottom: 16, width: '100%' }]}>
+          {/* Latest Activities */}
+          <View style={[wSt.card, { flex: 1, backgroundColor: isDark ? '#18181b' : '#FFFFFF', borderColor: isDark ? '#27272a' : '#E2E8F0', padding: 20, ...((!isDark && Platform.OS === 'web') ? { boxShadow: '0 2px 8px rgba(0,0,0,0.05)' } : {}) } as any]}>
+            <View style={[wSt.cardHeader, { marginBottom: 12 }]}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <Ionicons name="pie-chart" size={18} color="#f472b6" />
-                <Text style={[wSt.cardTitle, { color: '#fff' }]}>User Distribution</Text>
+                <View style={{ width: 32, height: 32, borderRadius: 8, backgroundColor: isDark ? '#3b82f620' : '#EFF6FF', justifyContent: 'center', alignItems: 'center' }}>
+                  <Ionicons name="time" size={16} color="#3B82F6" />
+                </View>
+                <Text style={[wSt.cardTitle, { color: isDark ? '#fff' : '#0F172A', fontFamily: 'Inter', fontWeight: '600' }]}>Latest Activities</Text>
               </View>
+              <TouchableOpacity onPress={() => router.push('/admin/before-after')} style={{ paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, backgroundColor: isDark ? '#3b82f615' : '#EFF6FF' }}>
+                <Text style={{ fontSize: 12, color: '#3B82F6', fontWeight: '600' }}>View All</Text>
+              </TouchableOpacity>
             </View>
-            <View style={{ width: '100%', maxWidth: 400 }}>
-                <DonutChart users={allUsers} COLOR={COLOR} />
-            </View>
+            <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
+              {allReports.slice(0, 3).map((r, idx) => {
+                const statusColor = r.status === 'approved' ? '#10B981' : r.status === 'rejected' ? '#EF4444' : '#F59E0B';
+                const statusBg = isDark ? statusColor + '20' : (r.status === 'approved' ? '#ECFDF5' : r.status === 'rejected' ? '#FEF2F2' : '#FFFBEB');
+                return (
+                  <TouchableOpacity key={r.id} onPress={() => router.push(`/admin/before-after?id=${r.id}`)}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: isDark ? '#ffffff10' : '#F1F5F9' }}>
+                      <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: statusBg, justifyContent: 'center', alignItems: 'center', marginRight: 12 }}>
+                        <Ionicons name={r.status === 'approved' ? 'checkmark' : r.status === 'rejected' ? 'close' : 'time'} size={16} color={statusColor} />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ color: isDark ? '#fff' : '#0F172A', fontSize: 13, fontWeight: '600' }} numberOfLines={1}>{r.name}</Text>
+                        <Text style={{ color: isDark ? '#a1a1aa' : '#64748B', fontSize: 11, marginTop: 2 }}>{r.type} · {getRelativeTime(r.created_at)}</Text>
+                      </View>
+                      <View style={{ paddingHorizontal: 8, paddingVertical: 3, borderRadius: 20, backgroundColor: statusBg }}>
+                        <Text style={{ fontSize: 10, color: statusColor, fontWeight: '700', textTransform: 'capitalize' }}>{r.status}</Text>
+                      </View>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+              {!loading && allReports.length === 0 && (
+                <Text style={{ color: isDark ? '#71717a' : '#94A3B8', textAlign: 'center', marginTop: 20, fontSize: 12 }}>No recent activities.</Text>
+              )}
+            </ScrollView>
           </View>
         </View>
 

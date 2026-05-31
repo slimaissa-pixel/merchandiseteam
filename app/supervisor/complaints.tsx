@@ -33,7 +33,8 @@ import { getFullImageUrl } from '@/constants/api';
 import { DesignTokens, getColors } from '@/constants/designSystem';
 import { SUPERVISOR_NAV_ITEMS } from '@/constants/navigation';
 import { useTheme } from '@/context/ThemeContext';
-import { ComplaintService } from '@/services/complaint.service';
+import { ComplaintService } from '../../src/services/complaint.service';
+import apiClient from '../../src/services/apiClient';
 
 interface Complaint {
     id: number;

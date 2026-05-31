@@ -170,7 +170,7 @@ export default function LeavePage() {
 
                 {/* Date Selection Section */}
                 <SectionHeader title="Select Date Range" />
-                <Card style={styles.calendarCard}>
+                <Card style={[styles.calendarCard, { marginTop: 8, marginBottom: 16 }]}>
                     <Calendar
                         minDate={new Date().toISOString().split('T')[0]}
                         markingType={'period'}
@@ -262,23 +262,34 @@ const styles = StyleSheet.create({
     typeGrid: {
         flexDirection: 'row',
         flexWrap: 'wrap',
-        gap: 12,
+        justifyContent: 'space-between',
+        rowGap: 16,
     },
     typeCard: {
         width: '48%',
         flexDirection: 'column',
-        alignItems: 'flex-start',
-        padding: 14,
-        gap: 10,
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 20,
+        paddingHorizontal: 8,
+        gap: 12,
+        borderRadius: 24,
+        borderWidth: 2,
+        borderColor: 'transparent',
     },
     typeIcon: {
-        width: 40,
-        height: 40,
-        borderRadius: 10,
+        width: 48,
+        height: 48,
+        borderRadius: 24,
         alignItems: 'center',
         justifyContent: 'center',
     },
-    typeLabel: { ...DesignTokens.typography.caption, fontWeight: '700' },
+    typeLabel: { 
+        ...DesignTokens.typography.bodyBold, 
+        fontSize: 14,
+        textAlign: 'center',
+        lineHeight: 20
+    },
     calendarCard: {
         padding: 8,
     },

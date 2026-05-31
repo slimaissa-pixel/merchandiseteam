@@ -17,6 +17,12 @@ export interface KPIStats {
     stores_visited: number;
     anomalies_count: number;
     stock_alerts_count: number;
+    trends?: {
+        active_merchandisers: number;
+        stock_alerts: number;
+        anomalies: number;
+        visit_completion: number;
+    };
     performance_ranking: {
         user_id: number;
         name: string;
@@ -34,9 +40,36 @@ export interface SupervisorStats {
 }
 
 export interface MerchandiserStats {
-    stores_assigned: number;
-    reports_done: number;
-    target_hit: string;
+    visits: {
+        today: number;
+        this_week: number;
+        this_month: number;
+        completed_pct: number;
+        avg_duration_mins: number;
+        delayed: number;
+        missed: number;
+    };
+    reports: {
+        total: number;
+        approved: number;
+        pending: number;
+        rejected: number;
+        before_after: number;
+        anomalies: number;
+        ruptures: number;
+        product_facing: number;
+        ai_detections: number;
+    };
+    productivity: {
+        score: number;
+        attendance_rate: number;
+        store_coverage_pct: number;
+        working_hours_month: number;
+    };
+    charts: {
+        weekly_activity: { day: string; visits: number }[];
+        report_distribution: { type: string; count: number }[];
+    };
 }
 
 export interface PublicStats {

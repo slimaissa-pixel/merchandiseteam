@@ -4,6 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { Fonts } from '@/hooks/useFonts';
 import { getFullImageUrl } from '@/constants/api';
+import { useTheme } from '@/context/ThemeContext';
 
 const isWeb = Platform.OS === 'web';
 
@@ -14,7 +15,7 @@ const RankMedal = ({ rank }: { rank: number }) => {
   return <Text style={{ color: '#71717a', fontSize: 14, fontFamily: Fonts.headingXBold }}>#{rank}</Text>;
 };
 
-const LeaderboardCard = ({ user, index, router }: any) => {
+const LeaderboardCard = ({ user, index, router, isDark }: any) => {
   const scale = useRef(new Animated.Value(1)).current;
   const opacity = useRef(new Animated.Value(0)).current;
   const slide = useRef(new Animated.Value(20)).current;
@@ -34,12 +35,14 @@ const LeaderboardCard = ({ user, index, router }: any) => {
     Animated.spring(scale, { toValue: 1, friction: 6, tension: 50, useNativeDriver: false }).start();
   };
 
-  const colors = index === 0 ? ['#fbbf2420', '#f59e0b10', '#18181b'] : 
+  const darkColors = index === 0 ? ['#fbbf2420', '#f59e0b10', '#18181b'] : 
                  index === 1 ? ['#9ca3af20', '#6b728010', '#18181b'] : 
                  index === 2 ? ['#d9770620', '#b4530910', '#18181b'] : 
                  ['#27272a', '#18181b', '#18181b'];
+  const lightColors = ['#FFFFFF', '#FFFFFF', '#FFFFFF'];
+  const colors = isDark ? darkColors : lightColors;
                  
-  const borderColor = index === 0 ? '#fbbf24' : index === 1 ? '#9ca3af' : index === 2 ? '#d97706' : '#27272a';
+  const borderColor = index === 0 ? '#fbbf24' : index === 1 ? '#9ca3af' : index === 2 ? '#d97706' : (isDark ? '#27272a' : '#E2E8F0');
 
   const completedVisits = user.visits || 0;
   const reportsSub = user.reports || 0;
@@ -61,7 +64,9 @@ const LeaderboardCard = ({ user, index, router }: any) => {
           { 
             opacity,
             transform: [{ scale }, { translateY: slide }],
-            borderColor: borderColor + '50',
+            borderColor: isDark ? borderColor + '50' : borderColor,
+            backgroundColor: isDark ? '#18181b' : '#FFFFFF',
+            ...(!isDark && Platform.OS === 'web' ? { boxShadow: '0 2px 8px rgba(0,0,0,0.05)' } : {})
           }
         ]}>
           <LinearGradient colors={colors as any} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.cardGradient}>
@@ -78,10 +83,10 @@ const LeaderboardCard = ({ user, index, router }: any) => {
                   <View style={styles.statusDot} />
                 </View>
                 <View style={styles.nameContainer}>
-                  <Text style={styles.name} numberOfLines={1}>{user.name}</Text>
-                  <View style={styles.roleContainer}>
-                    <Ionicons name="star" size={10} color="#a1a1aa" />
-                    <Text style={styles.roleText}>Score: {user.score || 0}</Text>
+                  <Text style={[styles.name, !isDark && { color: '#0F172A', fontFamily: 'Inter' }]} numberOfLines={1}>{user.name}</Text>
+                  <View style={[styles.roleContainer, !isDark && { backgroundColor: '#F8FAFC' }]}>
+                    <Ionicons name="star" size={10} color={isDark ? "#a1a1aa" : "#F59E0B"} />
+                    <Text style={[styles.roleText, !isDark && { color: '#64748B', fontFamily: 'Inter' }]}>Score: {user.score || 0}</Text>
                   </View>
                 </View>
               </View>
@@ -91,20 +96,20 @@ const LeaderboardCard = ({ user, index, router }: any) => {
             </View>
 
             {/* Metrics Grid */}
-            <View style={styles.metricsGrid}>
+            <View style={[styles.metricsGrid, !isDark && { backgroundColor: '#F8FAFC', borderWidth: 1, borderColor: '#E2E8F0' }]}>
               <View style={styles.metricItem}>
-                <Text style={styles.metricLabel}>Visits</Text>
-                <Text style={styles.metricValue}>{completedVisits}</Text>
+                <Text style={[styles.metricLabel, !isDark && { color: '#64748B', fontFamily: 'Inter' }]}>Visits</Text>
+                <Text style={[styles.metricValue, !isDark && { color: '#0F172A', fontFamily: 'Inter' }]}>{completedVisits}</Text>
               </View>
-              <View style={styles.metricDivider} />
+              <View style={[styles.metricDivider, !isDark && { backgroundColor: '#E2E8F0' }]} />
               <View style={styles.metricItem}>
-                <Text style={styles.metricLabel}>Reports</Text>
-                <Text style={styles.metricValue}>{reportsSub}</Text>
+                <Text style={[styles.metricLabel, !isDark && { color: '#64748B', fontFamily: 'Inter' }]}>Reports</Text>
+                <Text style={[styles.metricValue, !isDark && { color: '#0F172A', fontFamily: 'Inter' }]}>{reportsSub}</Text>
               </View>
-              <View style={styles.metricDivider} />
+              <View style={[styles.metricDivider, !isDark && { backgroundColor: '#E2E8F0' }]} />
               <View style={styles.metricItem}>
-                <Text style={styles.metricLabel}>Prod.</Text>
-                <Text style={[styles.metricValue, { color: productivity >= 90 ? '#34d399' : '#fff' }]}>{productivity}%</Text>
+                <Text style={[styles.metricLabel, !isDark && { color: '#64748B', fontFamily: 'Inter' }]}>Prod.</Text>
+                <Text style={[styles.metricValue, !isDark && { color: '#0F172A', fontFamily: 'Inter' }, productivity >= 90 && { color: '#10B981' }]}>{productivity}%</Text>
               </View>
             </View>
 
@@ -123,18 +128,18 @@ const LeaderboardCard = ({ user, index, router }: any) => {
             {/* Actions */}
             <View style={styles.actionsContainer}>
               <TouchableOpacity 
-                style={styles.actionBtn}
+                style={[styles.actionBtn, !isDark && { backgroundColor: '#FFFFFF', borderColor: '#E2E8F0' }]}
                 onPress={(e) => { e.stopPropagation(); router.push(`/admin/merchandisers/${user.user_id}`); }}
               >
-                <Ionicons name="person-outline" size={14} color="#a1a1aa" />
-                <Text style={styles.actionBtnText}>Profile</Text>
+                <Ionicons name="person-outline" size={14} color={isDark ? "#a1a1aa" : "#64748B"} />
+                <Text style={[styles.actionBtnText, !isDark && { color: '#64748B', fontFamily: 'Inter' }]}>Profile</Text>
               </TouchableOpacity>
               <TouchableOpacity 
-                style={styles.actionBtn}
+                style={[styles.actionBtn, !isDark && { backgroundColor: '#FFFFFF', borderColor: '#E2E8F0' }]}
                 onPress={(e) => { e.stopPropagation(); router.push(`/admin/before-after?user_id=${user.user_id}`); }}
               >
-                <Ionicons name="document-text-outline" size={14} color="#a1a1aa" />
-                <Text style={styles.actionBtnText}>Reports</Text>
+                <Ionicons name="document-text-outline" size={14} color={isDark ? "#a1a1aa" : "#64748B"} />
+                <Text style={[styles.actionBtnText, !isDark && { color: '#64748B', fontFamily: 'Inter' }]}>Reports</Text>
               </TouchableOpacity>
             </View>
 
@@ -147,19 +152,21 @@ const LeaderboardCard = ({ user, index, router }: any) => {
 
 export default function PerformanceLeaderboard({ stats, router }: { stats: any, router: any }) {
   const users = stats?.performance_ranking?.slice(0, 5) || [];
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, !isDark && { backgroundColor: '#FFFFFF', borderColor: '#E2E8F0' }]}>
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <Ionicons name="podium" size={20} color="#60a5fa" />
-          <Text style={styles.title}>AI Performance Leaderboard</Text>
-          <View style={styles.liveBadge}>
+          <Ionicons name="podium" size={20} color={isDark ? "#60a5fa" : "#3B82F6"} />
+          <Text style={[styles.title, !isDark && { color: '#0F172A', fontFamily: 'Inter' }]}>AI Performance Leaderboard</Text>
+          <View style={[styles.liveBadge, !isDark && { backgroundColor: '#FEF2F2', borderColor: '#FCA5A5' }]}>
             <View style={styles.liveDot} />
             <Text style={styles.liveText}>LIVE</Text>
           </View>
         </View>
-        <Text style={styles.subtitle}>Top 5 Merchandisers • Global Ranking</Text>
+        <Text style={[styles.subtitle, !isDark && { color: '#64748B', fontFamily: 'Inter' }]}>Top 5 Merchandisers • Global Ranking</Text>
       </View>
       
       {users.length > 0 ? (
@@ -170,13 +177,13 @@ export default function PerformanceLeaderboard({ stats, router }: { stats: any, 
           contentContainerStyle={{ paddingRight: 20 }}
         >
           {users.map((user: any, idx: number) => (
-            <LeaderboardCard key={user.user_id} user={user} index={idx} router={router} />
+            <LeaderboardCard key={user.user_id} user={user} index={idx} router={router} isDark={isDark} />
           ))}
         </ScrollView>
       ) : (
-        <View style={styles.emptyState}>
-          <Ionicons name="bar-chart-outline" size={32} color="#3f3f46" />
-          <Text style={styles.emptyText}>Intelligence gathering in progress...</Text>
+        <View style={[styles.emptyState, !isDark && { backgroundColor: '#F8FAFC', borderColor: '#E2E8F0' }]}>
+          <Ionicons name="bar-chart-outline" size={32} color={isDark ? "#3f3f46" : "#94A3B8"} />
+          <Text style={[styles.emptyText, !isDark && { color: '#64748B', fontFamily: 'Inter' }]}>Intelligence gathering in progress...</Text>
         </View>
       )}
     </View>

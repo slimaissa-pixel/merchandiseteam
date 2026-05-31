@@ -114,22 +114,6 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login', isDa
         }, 1500);
     };
 
-    const handleGoogleSignIn = async () => {
-        setError(null);
-        setIsLoading(true);
-        try {
-            const { error } = await supabase.auth.signInWithOAuth({
-                provider: 'google'
-            });
-            if (error) throw error;
-            // The OAuth redirection will handle the closing session logic once redirected
-        } catch (err: any) {
-            setError(err.message || 'Google authentication failed');
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
     const handleQuickAccess = async (demoEmail: string) => {
         setError(null);
         setSuccessMsg(null);
@@ -202,17 +186,6 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login', isDa
                 .auth-cta:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(0,0,0,0.2); opacity: 0.9; }
                 .auth-cta:active { transform: translateY(0); }
                 .auth-cta:disabled { opacity: 0.6; cursor: not-allowed; }
-
-                .auth-google-btn {
-                    width: 100%; padding: 14px; border-radius: 14px;
-                    background: ${isDark ? 'rgba(255,255,255,0.03)' : '#fff'};
-                    border: 1px solid ${COLOR.border}; color: ${COLOR.text};
-                    font-size: 14px; font-weight: 700; cursor: pointer;
-                    display: flex; alignItems: center; justifyContent: center; gap: 12px;
-                    transition: all 0.2s;
-                }
-                .auth-google-btn:hover { background: ${isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.02)'}; border-color: ${COLOR.primary}40; }
-                .auth-google-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 
                 .quick-access-box { margin-top: 24px; padding-top: 24px; border-top: 1px solid ${COLOR.border}; }
                 .quick-access-title { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; color: ${COLOR.textMuted}; margin-bottom: 12px; text-align: center; }
@@ -370,25 +343,6 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login', isDa
 
                 {view !== 'forgot' && (
                     <>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 14, margin: '24px 0' }}>
-                            <div style={{ flex: 1, height: 1, background: COLOR.border }} />
-                            <span style={{ fontSize: 10, fontWeight: 900, color: COLOR.textMuted, letterSpacing: '0.1em' }}>OR</span>
-                            <div style={{ flex: 1, height: 1, background: COLOR.border }} />
-                        </div>
-
-                        <button 
-                            className="auth-google-btn" 
-                            onClick={handleGoogleSignIn}
-                            disabled={isLoading}
-                        >
-                            <img 
-                                src={getWebAsset(require('@/assets/images/google_logo.png'))} 
-                                style={{ width: 18, height: 18, objectFit: 'contain' }} 
-                                alt="Google Logo" 
-                            />
-                            Continue with Google Identity
-                        </button>
-                        
                         {view === 'login' && (
                             <div className="quick-access-box">
                                 <div className="quick-access-title">Fast Access Protocol (Demo)</div>
